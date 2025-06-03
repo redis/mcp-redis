@@ -95,3 +95,28 @@ async def rename(old_key: str, new_key: str) -> Dict[str, Any]:
 
     except RedisError as e:
         return {"error": str(e)}
+
+
+@mcp.tool()
+async def scan(pattern: str = "*", count: int = 10, cursor: int = 0) -> dict:
+    """
+    使用SCAN命令进行Redis key的模式匹配查询。
+
+    Args:
+        pattern (str): key的匹配模式，默认为"*"
+        count (int): 每次扫描返回的最大key数，默认为10
+        cursor (int): 游标，首次查询传0，后续用上次返回的cursor
+
+    Returns:
+        dict: {"keys": 匹配到的key列表, "next_cursor": 下一个游标, "finished": 是否扫描结束}
+    """
+    try:
+        r = RedisConnectionManager.get_connection()
+        next_cursor, keys = r.scan(cursor=cursor, match=pattern, count=count)
+        return {
+            "keys": keys,
+            "next_cursor": next_cursor,
+            "finished": next_cursor == 0
+        }
+    except RedisError as e:
+        return {"error": str(e)}
