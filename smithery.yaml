@@ -47,6 +47,10 @@ startCommand:
         type: string
         default: ""
         description: Path to trusted CA certificates file
+      allowDbSwitch:
+        type: boolean
+        default: false
+        description: Allow database switching
   commandFunction:
     # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
     |-
@@ -63,7 +67,8 @@ startCommand:
         REDIS_SSL_KEYFILE: config.redisSSLKeyfile,
         REDIS_SSL_CERTFILE: config.redisSSLCertfile,
         REDIS_CERT_REQS: config.redisCertReqs,
-        REDIS_CA_CERTS: config.redisCACerts
+        REDIS_CA_CERTS: config.redisCACerts,
+        ALLOW_DB_SWITCH: config.allowDbSwitch ? 'true' : 'false'
       }
     })
   exampleConfig:
@@ -77,3 +82,4 @@ startCommand:
     redisSSLCertfile: ""
     redisCertReqs: required
     redisCACerts: ""
+    allowDbSwitch: false

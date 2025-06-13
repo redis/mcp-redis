@@ -1,6 +1,7 @@
 from common.connection import RedisConnectionManager
 from redis.exceptions import RedisError
 from common.server import mcp
+from common.config import REDIS_CFG
 
 @mcp.tool()
 async def dbsize() -> int:
@@ -53,6 +54,10 @@ async def switch_database(db: int) -> str:
     Returns:
         str: Confirmation message or error message
     """
+    # Check if database switching is allowed
+    if not REDIS_CFG["allow_db_switch"]:
+        return "Error: Database switching is disabled. Set ALLOW_DB_SWITCH=1 to enable this feature."
+    
     try:
         r = RedisConnectionManager.get_connection()
         r.execute_command("SELECT", db)
