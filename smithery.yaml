@@ -51,6 +51,10 @@ startCommand:
         type: boolean
         default: false
         description: Allow database switching
+      blockedDbs:
+        type: string
+        default: ""
+        description: Comma-separated list of database numbers to block access to (e.g. "1,2,15")
   commandFunction:
     # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
     |-
@@ -68,7 +72,8 @@ startCommand:
         REDIS_SSL_CERTFILE: config.redisSSLCertfile,
         REDIS_CERT_REQS: config.redisCertReqs,
         REDIS_CA_CERTS: config.redisCACerts,
-        ALLOW_DB_SWITCH: config.allowDbSwitch ? 'true' : 'false'
+        ALLOW_DB_SWITCH: config.allowDbSwitch ? 'true' : 'false',
+        BLOCKED_DBS: config.blockedDbs
       }
     })
   exampleConfig:
@@ -83,3 +88,4 @@ startCommand:
     redisCertReqs: required
     redisCACerts: ""
     allowDbSwitch: false
+    blockedDbs: ""

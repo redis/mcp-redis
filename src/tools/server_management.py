@@ -1,7 +1,7 @@
 from common.connection import RedisConnectionManager
 from redis.exceptions import RedisError
 from common.server import mcp
-from common.config import REDIS_CFG
+from common.config import REDIS_CFG, is_database_blocked, get_blocked_databases
 
 @mcp.tool()
 async def dbsize() -> int:
@@ -61,6 +61,11 @@ async def switch_database(db: int) -> str:
     # Check if database switching is allowed
     if not REDIS_CFG["allow_db_switch"]:
         return "Error: Database switching is disabled. Set ALLOW_DB_SWITCH=true to enable this feature."
+    
+    # Check if the target database is blocked
+    if is_database_blocked(db):
+        blocked_dbs = get_blocked_databases()
+        return f"Error: Access to database {db} is blocked. Blocked databases: {blocked_dbs}"
     
     try:
         r = RedisConnectionManager.get_connection()

@@ -5,7 +5,7 @@ from redis import Redis
 from redis.cluster import RedisCluster
 from redis.exceptions import RedisError
 from typing import Optional, Type, Union, Dict, Any
-from common.config import REDIS_CFG
+from common.config import REDIS_CFG, is_database_blocked
 
 
 class RedisConnectionManager:
@@ -95,6 +95,10 @@ class RedisConnectionManager:
         Raises:
             RedisError: If cluster mode is enabled and db is specified, or connection fails
         """
+        # Check if the specified database is blocked
+        if db is not None and is_database_blocked(db):
+            raise RedisError(f"Access to database {db} is blocked")
+            
         if use_singleton and db is None:
             # Singleton behavior for default database
             if cls._instance is None:
