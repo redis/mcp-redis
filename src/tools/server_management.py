@@ -53,10 +53,14 @@ async def switch_database(db: int) -> str:
         
     Returns:
         str: Confirmation message or error message
+        
+    Note:
+        Database switching must be enabled via ALLOW_DB_SWITCH environment variable.
+        Set ALLOW_DB_SWITCH=true to enable this feature.
     """
     # Check if database switching is allowed
     if not REDIS_CFG["allow_db_switch"]:
-        return "Error: Database switching is disabled. Set ALLOW_DB_SWITCH=1 to enable this feature."
+        return "Error: Database switching is disabled. Set ALLOW_DB_SWITCH=true to enable this feature."
     
     try:
         r = RedisConnectionManager.get_connection()

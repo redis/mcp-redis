@@ -10,15 +10,15 @@ REDIS_CFG = {"host": os.getenv('REDIS_HOST', '127.0.0.1'),
              "port": int(os.getenv('REDIS_PORT',6379)),
              "username": os.getenv('REDIS_USERNAME', None),
              "password": os.getenv('REDIS_PWD',''),
-             "ssl": os.getenv('REDIS_SSL', False) in ('true', '1', 't'),
+             "ssl": os.getenv('REDIS_SSL', 'false').lower() in ('true', '1', 't'),
              "ssl_ca_path": os.getenv('REDIS_SSL_CA_PATH', None),
              "ssl_keyfile": os.getenv('REDIS_SSL_KEYFILE', None),
              "ssl_certfile": os.getenv('REDIS_SSL_CERTFILE', None),
              "ssl_cert_reqs": os.getenv('REDIS_SSL_CERT_REQS', 'required'),
              "ssl_ca_certs": os.getenv('REDIS_SSL_CA_CERTS', None),
-             "cluster_mode": os.getenv('REDIS_CLUSTER_MODE', False) in ('true', '1', 't'),
+             "cluster_mode": os.getenv('REDIS_CLUSTER_MODE', 'false').lower() in ('true', '1', 't'),
              "db": int(os.getenv('REDIS_DB', 0)),
-             "allow_db_switch": os.getenv('ALLOW_DB_SWITCH', 'false') in ('true', '1', 't')}
+             "allow_db_switch": os.getenv('ALLOW_DB_SWITCH', 'false').lower() in ('true', '1', 't')}
 
 
 def generate_redis_uri():
