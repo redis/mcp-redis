@@ -16,7 +16,7 @@ async def build_agent():
                 "run", "main.py"
             ],
         "env": {
-            "REDIS_HOST": "127.0.0.1",
+            "REDIS_HOST": "0.0.0.0",
             "REDIS_PORT": "6379",
             "REDIS_USERNAME": "default",
             "REDIS_PWD": ""
