@@ -26,7 +26,7 @@ class RedisMCPServer:
 
 @click.command()
 @click.option('--url', help='Redis connection URI (redis://user:pass@host:port/db or rediss:// for SSL)')
-@click.option('--host', default='127.0.0.1', help='Redis host')
+@click.option('--host', default='0.0.0.0', help='Redis host')
 @click.option('--port', default=6379, type=int, help='Redis port')
 @click.option('--db', default=0, type=int, help='Redis database number')
 @click.option('--username', help='Redis username')
