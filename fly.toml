@@ -4,7 +4,7 @@
 #
 
 app = 'redis-mcp'
-primary_region = 'hkg'
+primary_region = 'nrt'
 
 [build]
 
@@ -13,11 +13,11 @@ primary_region = 'hkg'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
 [[vm]]
-  memory = '256mb'
+  memory = '1024mb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 256
+  memory_mb = 1024
