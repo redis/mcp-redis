@@ -6,7 +6,7 @@ import urllib.parse
 
 load_dotenv()
 
-REDIS_CFG = {"host": os.getenv('REDIS_HOST', '127.0.0.1'),
+REDIS_CFG = {"host": os.getenv('REDIS_HOST', '0.0.0.0'),
              "port": int(os.getenv('REDIS_PORT',6379)),
              "username": os.getenv('REDIS_USERNAME', None),
              "password": os.getenv('REDIS_PWD',''),
@@ -34,7 +34,7 @@ def parse_redis_uri(uri: str) -> dict:
         raise ValueError(f"Unsupported scheme: {parsed.scheme}")
 
     # Host and port
-    config['host'] = parsed.hostname or '127.0.0.1'
+    config['host'] = parsed.hostname or '0.0.0.0'
     config['port'] = parsed.port or 6379
 
     # Database
