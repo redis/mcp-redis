@@ -9,7 +9,7 @@ startCommand:
     properties:
       redisHost:
         type: string
-        default: 127.0.0.1
+        default: 0.0.0.0
         description: Redis IP or hostname
       redisPort:
         type: number
@@ -67,7 +67,7 @@ startCommand:
       }
     })
   exampleConfig:
-    redisHost: 127.0.0.1
+    redisHost: 0.0.0.0
     redisPort: 6379
     redisUsername: default
     redisPwd: ""
