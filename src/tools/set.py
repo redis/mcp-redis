@@ -1,5 +1,6 @@
-from src.common.connection import RedisConnectionManager
 from redis.exceptions import RedisError
+
+from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
@@ -23,7 +24,8 @@ async def sadd(name: str, value: str, expire_seconds: int = None) -> str:
             r.expire(name, expire_seconds)
 
         return f"Value '{value}' added successfully to set '{name}'." + (
-            f" Expires in {expire_seconds} seconds." if expire_seconds else "")
+            f" Expires in {expire_seconds} seconds." if expire_seconds else ""
+        )
     except RedisError as e:
         return f"Error adding value '{value}' to set '{name}': {str(e)}"
 
@@ -42,7 +44,11 @@ async def srem(name: str, value: str) -> str:
     try:
         r = RedisConnectionManager.get_connection()
         removed = r.srem(name, value)
-        return f"Value '{value}' removed from set '{name}'." if removed else f"Value '{value}' not found in set '{name}'."
+        return (
+            f"Value '{value}' removed from set '{name}'."
+            if removed
+            else f"Value '{value}' not found in set '{name}'."
+        )
     except RedisError as e:
         return f"Error removing value '{value}' from set '{name}': {str(e)}"
 
@@ -63,4 +69,3 @@ async def smembers(name: str) -> list:
         return list(members) if members else f"Set '{name}' is empty or does not exist."
     except RedisError as e:
         return f"Error retrieving members of set '{name}': {str(e)}"
-

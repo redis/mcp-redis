@@ -1,10 +1,12 @@
 import sys
-from src.version import __version__
+from typing import Optional, Type, Union
+
 import redis
 from redis import Redis
 from redis.cluster import RedisCluster
-from typing import Optional, Type, Union
+
 from src.common.config import REDIS_CFG
+from src.version import __version__
 
 
 class RedisConnectionManager:
@@ -15,7 +17,9 @@ class RedisConnectionManager:
         if cls._instance is None:
             try:
                 if REDIS_CFG["cluster_mode"]:
-                    redis_class: Type[Union[Redis, RedisCluster]] = redis.cluster.RedisCluster
+                    redis_class: Type[Union[Redis, RedisCluster]] = (
+                        redis.cluster.RedisCluster
+                    )
                     connection_params = {
                         "host": REDIS_CFG["host"],
                         "port": REDIS_CFG["port"],
@@ -29,7 +33,7 @@ class RedisConnectionManager:
                         "ssl_ca_certs": REDIS_CFG["ssl_ca_certs"],
                         "decode_responses": decode_responses,
                         "lib_name": f"redis-py(mcp-server_v{__version__})",
-                        "max_connections_per_node": 10
+                        "max_connections_per_node": 10,
                     }
                 else:
                     redis_class: Type[Union[Redis, RedisCluster]] = redis.Redis
@@ -47,9 +51,9 @@ class RedisConnectionManager:
                         "ssl_ca_certs": REDIS_CFG["ssl_ca_certs"],
                         "decode_responses": decode_responses,
                         "lib_name": f"redis-py(mcp-server_v{__version__})",
-                        "max_connections": 10
+                        "max_connections": 10,
                     }
-                
+
                 cls._instance = redis_class(**connection_params)
 
             except redis.exceptions.ConnectionError:

@@ -1,6 +1,8 @@
-from typing import Dict, Any
-from src.common.connection import RedisConnectionManager
+from typing import Any, Dict
+
 from redis.exceptions import RedisError
+
+from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
@@ -22,7 +24,7 @@ async def delete(key: str) -> str:
         return f"Error deleting key {key}: {str(e)}"
 
 
-@mcp.tool()  
+@mcp.tool()
 async def type(key: str) -> Dict[str, Any]:
     """Returns the string representation of the type of the value stored at key
 
@@ -35,15 +37,11 @@ async def type(key: str) -> Dict[str, Any]:
     try:
         r = RedisConnectionManager.get_connection()
         key_type = r.type(key)
-        info = {
-            'key': key,
-            'type': key_type,
-            'ttl': r.ttl(key)
-        }
-        
+        info = {"key": key, "type": key_type, "ttl": r.ttl(key)}
+
         return info
     except RedisError as e:
-        return {'error': str(e)}
+        return {"error": str(e)}
 
 
 @mcp.tool()
@@ -60,7 +58,11 @@ async def expire(name: str, expire_seconds: int) -> str:
     try:
         r = RedisConnectionManager.get_connection()
         success = r.expire(name, expire_seconds)
-        return f"Expiration set to {expire_seconds} seconds for '{name}'." if success else f"Key '{name}' does not exist."
+        return (
+            f"Expiration set to {expire_seconds} seconds for '{name}'."
+            if success
+            else f"Key '{name}' does not exist."
+        )
     except RedisError as e:
         return f"Error setting expiration for key '{name}': {str(e)}"
 
@@ -90,7 +92,7 @@ async def rename(old_key: str, new_key: str) -> Dict[str, Any]:
         r.rename(old_key, new_key)
         return {
             "status": "success",
-            "message": f"Renamed key '{old_key}' to '{new_key}'"
+            "message": f"Renamed key '{old_key}' to '{new_key}'",
         }
 
     except RedisError as e:
@@ -101,11 +103,11 @@ async def rename(old_key: str, new_key: str) -> Dict[str, Any]:
 async def scan_keys(pattern: str = "*", count: int = 100, cursor: int = 0) -> dict:
     """
     Scan keys in the Redis database using the SCAN command (non-blocking, production-safe).
-    
-    ⚠️  IMPORTANT: This returns PARTIAL results from one iteration. Use scan_all_keys() 
+
+    ⚠️  IMPORTANT: This returns PARTIAL results from one iteration. Use scan_all_keys()
     to get ALL matching keys, or call this function multiple times with the returned cursor
     until cursor becomes 0.
-    
+
     The SCAN command iterates through the keyspace in small chunks, making it safe to use
     on large databases without blocking other operations.
 
@@ -124,7 +126,7 @@ async def scan_keys(pattern: str = "*", count: int = 100, cursor: int = 0) -> di
         - 'total_scanned': Number of keys returned in this batch
         - 'scan_complete': Boolean indicating if scan is finished
         Or an error message if something goes wrong.
-        
+
     Example usage:
         First call: scan_keys("user:*") -> returns cursor=1234, keys=[...], scan_complete=False
         Next call: scan_keys("user:*", cursor=1234) -> continues from where it left off
@@ -133,15 +135,17 @@ async def scan_keys(pattern: str = "*", count: int = 100, cursor: int = 0) -> di
     try:
         r = RedisConnectionManager.get_connection()
         cursor, keys = r.scan(cursor=cursor, match=pattern, count=count)
-        
+
         # Convert bytes to strings if needed
-        decoded_keys = [key.decode('utf-8') if isinstance(key, bytes) else key for key in keys]
-        
+        decoded_keys = [
+            key.decode("utf-8") if isinstance(key, bytes) else key for key in keys
+        ]
+
         return {
-            'cursor': cursor,
-            'keys': decoded_keys,
-            'total_scanned': len(decoded_keys),
-            'scan_complete': cursor == 0
+            "cursor": cursor,
+            "keys": decoded_keys,
+            "total_scanned": len(decoded_keys),
+            "scan_complete": cursor == 0,
         }
     except RedisError as e:
         return f"Error scanning keys with pattern '{pattern}': {str(e)}"
@@ -151,10 +155,10 @@ async def scan_keys(pattern: str = "*", count: int = 100, cursor: int = 0) -> di
 async def scan_all_keys(pattern: str = "*", batch_size: int = 100) -> list:
     """
     Scan and return ALL keys matching a pattern using multiple SCAN iterations.
-    
+
     This function automatically handles the SCAN cursor iteration to collect all matching keys.
     It's safer than KEYS * for large databases but will still collect all results in memory.
-    
+
     ⚠️  WARNING: With very large datasets (millions of keys), this may consume significant memory.
     For large-scale operations, consider using scan_keys() with manual iteration instead.
 
@@ -169,18 +173,20 @@ async def scan_all_keys(pattern: str = "*", batch_size: int = 100) -> list:
         r = RedisConnectionManager.get_connection()
         all_keys = []
         cursor = 0
-        
+
         while True:
             cursor, keys = r.scan(cursor=cursor, match=pattern, count=batch_size)
-            
+
             # Convert bytes to strings if needed and add to results
-            decoded_keys = [key.decode('utf-8') if isinstance(key, bytes) else key for key in keys]
+            decoded_keys = [
+                key.decode("utf-8") if isinstance(key, bytes) else key for key in keys
+            ]
             all_keys.extend(decoded_keys)
-            
+
             # Break when scan is complete (cursor returns to 0)
             if cursor == 0:
                 break
-        
+
         return all_keys
     except RedisError as e:
         return f"Error scanning all keys with pattern '{pattern}': {str(e)}"

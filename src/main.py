@@ -1,19 +1,9 @@
 import sys
+
 import click
-from src.common.connection import RedisConnectionManager
-from src.common.server import mcp
+
 from src.common.config import parse_redis_uri, set_redis_config_from_cli
-import src.tools.server_management
-import src.tools.misc
-import src.tools.redis_query_engine
-import src.tools.hash
-import src.tools.list
-import src.tools.string
-import src.tools.json
-import src.tools.sorted_set
-import src.tools.set
-import src.tools.stream
-import src.tools.pub_sub
+from src.common.server import mcp
 
 
 class RedisMCPServer:
@@ -25,22 +15,39 @@ class RedisMCPServer:
 
 
 @click.command()
-@click.option('--url', help='Redis connection URI (redis://user:pass@host:port/db or rediss:// for SSL)')
-@click.option('--host', default='127.0.0.1', help='Redis host')
-@click.option('--port', default=6379, type=int, help='Redis port')
-@click.option('--db', default=0, type=int, help='Redis database number')
-@click.option('--username', help='Redis username')
-@click.option('--password', help='Redis password')
-@click.option('--ssl', is_flag=True, help='Use SSL connection')
-@click.option('--ssl-ca-path', help='Path to CA certificate file')
-@click.option('--ssl-keyfile', help='Path to SSL key file')
-@click.option('--ssl-certfile', help='Path to SSL certificate file')
-@click.option('--ssl-cert-reqs', default='required', help='SSL certificate requirements')
-@click.option('--ssl-ca-certs', help='Path to CA certificates file')
-@click.option('--cluster-mode', is_flag=True, help='Enable Redis cluster mode')
-def cli(url, host, port, db, username, password,
-        ssl, ssl_ca_path, ssl_keyfile, ssl_certfile,
-        ssl_cert_reqs, ssl_ca_certs, cluster_mode):
+@click.option(
+    "--url",
+    help="Redis connection URI (redis://user:pass@host:port/db or rediss:// for SSL)",
+)
+@click.option("--host", default="127.0.0.1", help="Redis host")
+@click.option("--port", default=6379, type=int, help="Redis port")
+@click.option("--db", default=0, type=int, help="Redis database number")
+@click.option("--username", help="Redis username")
+@click.option("--password", help="Redis password")
+@click.option("--ssl", is_flag=True, help="Use SSL connection")
+@click.option("--ssl-ca-path", help="Path to CA certificate file")
+@click.option("--ssl-keyfile", help="Path to SSL key file")
+@click.option("--ssl-certfile", help="Path to SSL certificate file")
+@click.option(
+    "--ssl-cert-reqs", default="required", help="SSL certificate requirements"
+)
+@click.option("--ssl-ca-certs", help="Path to CA certificates file")
+@click.option("--cluster-mode", is_flag=True, help="Enable Redis cluster mode")
+def cli(
+    url,
+    host,
+    port,
+    db,
+    username,
+    password,
+    ssl,
+    ssl_ca_path,
+    ssl_keyfile,
+    ssl_certfile,
+    ssl_cert_reqs,
+    ssl_ca_certs,
+    cluster_mode,
+):
     """Redis MCP Server - Model Context Protocol server for Redis."""
 
     # Handle Redis URI if provided
@@ -54,27 +61,27 @@ def cli(url, host, port, db, username, password,
     else:
         # Set individual Redis parameters
         config = {
-            'host': host,
-            'port': port,
-            'db': db,
-            'ssl': ssl,
-            'cluster_mode': cluster_mode
+            "host": host,
+            "port": port,
+            "db": db,
+            "ssl": ssl,
+            "cluster_mode": cluster_mode,
         }
 
         if username:
-            config['username'] = username
+            config["username"] = username
         if password:
-            config['password'] = password
+            config["password"] = password
         if ssl_ca_path:
-            config['ssl_ca_path'] = ssl_ca_path
+            config["ssl_ca_path"] = ssl_ca_path
         if ssl_keyfile:
-            config['ssl_keyfile'] = ssl_keyfile
+            config["ssl_keyfile"] = ssl_keyfile
         if ssl_certfile:
-            config['ssl_certfile'] = ssl_certfile
+            config["ssl_certfile"] = ssl_certfile
         if ssl_cert_reqs:
-            config['ssl_cert_reqs'] = ssl_cert_reqs
+            config["ssl_cert_reqs"] = ssl_cert_reqs
         if ssl_ca_certs:
-            config['ssl_ca_certs'] = ssl_ca_certs
+            config["ssl_ca_certs"] = ssl_ca_certs
 
         set_redis_config_from_cli(config)
 

@@ -1,11 +1,12 @@
-from src.common.connection import RedisConnectionManager
 from redis.exceptions import RedisError
+
+from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
+
 
 @mcp.tool()
 async def dbsize() -> int:
-    """Get the number of keys stored in the Redis database
-    """
+    """Get the number of keys stored in the Redis database"""
     try:
         r = RedisConnectionManager.get_connection()
         return r.dbsize()

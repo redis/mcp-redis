@@ -23,3 +23,8 @@ uv.lock
 *.swp
 *.swo
 *~
+/bandit-report.json
+/safety-report.json
+/coverage.xml
+/.coverage
+/htmlcov/

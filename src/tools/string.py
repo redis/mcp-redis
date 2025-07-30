@@ -1,7 +1,8 @@
-from src.common.connection import RedisConnectionManager
 from redis.exceptions import RedisError
-from src.common.server import mcp
 from redis.typing import EncodableT
+
+from src.common.connection import RedisConnectionManager
+from src.common.server import mcp
 
 
 @mcp.tool()
@@ -22,7 +23,9 @@ async def set(key: str, value: EncodableT, expiration: int = None) -> str:
             r.setex(key, expiration, value)
         else:
             r.set(key, value)
-        return f"Successfully set {key}" + (f" with expiration {expiration} seconds" if expiration else "")
+        return f"Successfully set {key}" + (
+            f" with expiration {expiration} seconds" if expiration else ""
+        )
     except RedisError as e:
         return f"Error setting key {key}: {str(e)}"
 
@@ -43,4 +46,3 @@ async def get(key: str) -> str:
         return value if value else f"Key {key} does not exist"
     except RedisError as e:
         return f"Error retrieving key {key}: {str(e)}"
-

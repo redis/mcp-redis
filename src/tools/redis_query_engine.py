@@ -1,14 +1,16 @@
 import json
-from src.common.connection import RedisConnectionManager
-from redis.exceptions import RedisError
-from src.common.server import mcp
-from redis.commands.search.query import Query
+
+import numpy as np
 from redis.commands.search.field import VectorField
 from redis.commands.search.index_definition import IndexDefinition
-import numpy as np
+from redis.commands.search.query import Query
+from redis.exceptions import RedisError
+
+from src.common.connection import RedisConnectionManager
+from src.common.server import mcp
 
 
-@mcp.tool() 
+@mcp.tool()
 async def get_indexes() -> str:
     """List of indexes in the Redis database
 
@@ -57,11 +59,13 @@ async def get_indexed_keys_number(index_name: str) -> str:
 
 
 @mcp.tool()
-async def create_vector_index_hash(index_name: str = "vector_index",
-                       prefix: str = "doc:",
-                       vector_field: str = "vector",
-                       dim: int = 1536,
-                       distance_metric: str = "COSINE") -> str:
+async def create_vector_index_hash(
+    index_name: str = "vector_index",
+    prefix: str = "doc:",
+    vector_field: str = "vector",
+    dim: int = 1536,
+    distance_metric: str = "COSINE",
+) -> str:
     """
     Create a Redis 8 vector similarity index using HNSW on a Redis hash.
 
@@ -82,16 +86,10 @@ async def create_vector_index_hash(index_name: str = "vector_index",
         r = RedisConnectionManager.get_connection()
 
         index_def = IndexDefinition(prefix=[prefix])
-        schema = (
-            VectorField(
-                vector_field,
-                "HNSW",
-                {
-                    "TYPE": "FLOAT32",
-                    "DIM": dim,
-                    "DISTANCE_METRIC": distance_metric
-                }
-            )
+        schema = VectorField(
+            vector_field,
+            "HNSW",
+            {"TYPE": "FLOAT32", "DIM": dim, "DISTANCE_METRIC": distance_metric},
         )
 
         r.ft(index_name).create_index([schema], definition=index_def)
@@ -101,11 +99,13 @@ async def create_vector_index_hash(index_name: str = "vector_index",
 
 
 @mcp.tool()
-async def vector_search_hash(query_vector: list,
-                            index_name: str = "vector_index",
-                            vector_field: str = "vector",
-                            k: int = 5,
-                            return_fields: list = None) -> list:
+async def vector_search_hash(
+    query_vector: list,
+    index_name: str = "vector_index",
+    vector_field: str = "vector",
+    k: int = 5,
+    return_fields: list = None,
+) -> list:
     """
     Perform a KNN vector similarity search using Redis 8 or later version on vectors stored in hash data structures.
 
@@ -127,10 +127,18 @@ async def vector_search_hash(query_vector: list,
 
         # Build the KNN query
         base_query = f"*=>[KNN {k} @{vector_field} $vec_param AS score]"
-        query = Query(base_query).sort_by("score").paging(0, k).return_fields("id", "score", *return_fields or []).dialect(2)
+        query = (
+            Query(base_query)
+            .sort_by("score")
+            .paging(0, k)
+            .return_fields("id", "score", *return_fields or [])
+            .dialect(2)
+        )
 
         # Perform the search with vector parameter
-        results = r.ft(index_name).search(query, query_params={"vec_param": vector_blob})
+        results = r.ft(index_name).search(
+            query, query_params={"vec_param": vector_blob}
+        )
 
         # Format and return the results
         return [doc.__dict__ for doc in results.docs]

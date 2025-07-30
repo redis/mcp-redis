@@ -1,11 +1,14 @@
-from src.common.connection import RedisConnectionManager
-from redis.exceptions import RedisError
-from src.common.server import mcp
 from redis.commands.json._util import JsonType
+from redis.exceptions import RedisError
+
+from src.common.connection import RedisConnectionManager
+from src.common.server import mcp
 
 
 @mcp.tool()
-async def json_set(name: str, path: str, value: JsonType, expire_seconds: int = None) -> str:
+async def json_set(
+    name: str, path: str, value: JsonType, expire_seconds: int = None
+) -> str:
     """Set a JSON value in Redis at a given path with an optional expiration time.
 
     Args:
@@ -25,13 +28,14 @@ async def json_set(name: str, path: str, value: JsonType, expire_seconds: int = 
             r.expire(name, expire_seconds)
 
         return f"JSON value set at path '{path}' in '{name}'." + (
-            f" Expires in {expire_seconds} seconds." if expire_seconds else "")
+            f" Expires in {expire_seconds} seconds." if expire_seconds else ""
+        )
     except RedisError as e:
         return f"Error setting JSON value at path '{path}' in '{name}': {str(e)}"
 
 
 @mcp.tool()
-async def json_get(name: str, path: str = '$') -> str:
+async def json_get(name: str, path: str = "$") -> str:
     """Retrieve a JSON value from Redis at a given path.
 
     Args:
@@ -44,13 +48,17 @@ async def json_get(name: str, path: str = '$') -> str:
     try:
         r = RedisConnectionManager.get_connection()
         value = r.json().get(name, path)
-        return value if value is not None else f"No data found at path '{path}' in '{name}'."
+        return (
+            value
+            if value is not None
+            else f"No data found at path '{path}' in '{name}'."
+        )
     except RedisError as e:
         return f"Error retrieving JSON value at path '{path}' in '{name}': {str(e)}"
 
 
 @mcp.tool()
-async def json_del(name: str, path: str = '$') -> str:
+async def json_del(name: str, path: str = "$") -> str:
     """Delete a JSON value from Redis at a given path.
 
     Args:
@@ -63,7 +71,10 @@ async def json_del(name: str, path: str = '$') -> str:
     try:
         r = RedisConnectionManager.get_connection()
         deleted = r.json().delete(name, path)
-        return f"Deleted JSON value at path '{path}' in '{name}'." if deleted else f"No JSON value found at path '{path}' in '{name}'."
+        return (
+            f"Deleted JSON value at path '{path}' in '{name}'."
+            if deleted
+            else f"No JSON value found at path '{path}' in '{name}'."
+        )
     except RedisError as e:
         return f"Error deleting JSON value at path '{path}' in '{name}': {str(e)}"
-
