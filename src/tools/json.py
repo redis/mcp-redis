@@ -1,8 +1,17 @@
-from redis.commands.json._util import JsonType
+from typing import Union, Mapping, List, TYPE_CHECKING, Any
 from redis.exceptions import RedisError
 
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
+
+# Define JsonType for type checking to match redis-py definition
+if TYPE_CHECKING:
+    JsonType = Union[
+        str, int, float, bool, None, Mapping[str, "JsonType"], List["JsonType"]
+    ]
+else:
+    # Use Any at runtime to avoid Pydantic issues with recursive types
+    JsonType = Any
 
 
 @mcp.tool()
