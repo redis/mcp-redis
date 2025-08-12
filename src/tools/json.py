@@ -1,3 +1,4 @@
+import json
 from typing import Union, Mapping, List, TYPE_CHECKING, Any
 from redis.exceptions import RedisError
 
@@ -57,11 +58,11 @@ async def json_get(name: str, path: str = "$") -> str:
     try:
         r = RedisConnectionManager.get_connection()
         value = r.json().get(name, path)
-        return (
-            value
-            if value is not None
-            else f"No data found at path '{path}' in '{name}'."
-        )
+        if value is not None:
+            # Convert the value to JSON string for consistent return type
+            return json.dumps(value, ensure_ascii=False, indent=2)
+        else:
+            return f"No data found at path '{path}' in '{name}'."
     except RedisError as e:
         return f"Error retrieving JSON value at path '{path}' in '{name}': {str(e)}"
 
