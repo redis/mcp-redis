@@ -36,7 +36,8 @@ async def get_index_info(index_name: str) -> str:
     """
     try:
         r = RedisConnectionManager.get_connection()
-        return r.ft(index_name).info()
+        info = r.ft(index_name).info()
+        return json.dumps(info, ensure_ascii=False, indent=2)
     except RedisError as e:
         return f"Error retrieving index info: {str(e)}"
 
@@ -49,11 +50,12 @@ async def get_indexed_keys_number(index_name: str) -> str:
         index_name (str): The name of the index to retrieve information about.
 
     Returns:
-        int: Number of indexed keys
+        str: Number of indexed keys as a string
     """
     try:
         r = RedisConnectionManager.get_connection()
-        return r.ft(index_name).search(Query("*")).total
+        total = r.ft(index_name).search(Query("*")).total
+        return str(total)
     except RedisError as e:
         return f"Error retrieving number of keys: {str(e)}"
 
