@@ -55,7 +55,7 @@ async def get(key: str) -> Union[str, bytes]:
         str: The stored value or an error message.
     """
     try:
-        r = RedisConnectionManager.get_connection()
+        r: Redis = RedisConnectionManager.get_connection()
         value = r.get(key)
 
         if value is None:
