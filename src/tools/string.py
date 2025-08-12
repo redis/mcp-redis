@@ -14,7 +14,7 @@ async def set(key: str, value: Union[str, bytes, int, float, dict], expiration: 
 
     Args:
         key (str): The key to set.
-        value (str): The value to store.
+        value (str, bytes, int, float, dict): The value to store.
         expiration (int, optional): Expiration time in seconds.
 
     Returns:
@@ -52,7 +52,7 @@ async def get(key: str) -> Union[str, bytes]:
         key (str): The key to retrieve.
 
     Returns:
-        str: The stored value or an error message.
+        str, bytes: The stored value or an error message.
     """
     try:
         r: Redis = RedisConnectionManager.get_connection()
