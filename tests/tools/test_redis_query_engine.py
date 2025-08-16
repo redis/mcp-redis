@@ -256,7 +256,8 @@ class TestRedisQueryEngineOperations:
 
         mock_redis.ft.assert_called_once_with("vector_index")
         mock_ft.info.assert_called_once()
-        assert result == mock_info
+        # get_index_info returns a JSON string representation
+        assert result == json.dumps(mock_info, ensure_ascii=False, indent=2)
 
     @pytest.mark.asyncio
     async def test_get_index_info_default_index(self, mock_redis_connection_manager):
@@ -269,7 +270,10 @@ class TestRedisQueryEngineOperations:
         result = await get_index_info("vector_index")
 
         mock_redis.ft.assert_called_once_with("vector_index")
-        assert result == {"index_name": "vector_index"}
+        # get_index_info returns a JSON string representation
+        assert result == json.dumps(
+            {"index_name": "vector_index"}, ensure_ascii=False, indent=2
+        )
 
     @pytest.mark.asyncio
     async def test_get_index_info_redis_error(self, mock_redis_connection_manager):
