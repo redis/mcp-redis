@@ -3,6 +3,25 @@ name: Release to PyPI
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.3.0)'
+        required: true
+        type: string
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'pypi'
+        type: choice
+        options:
+        - pypi
+        - testpypi
+      dry_run:
+        description: 'Dry run (build only, do not publish)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -116,9 +135,9 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     needs: [validate-release, security-scan, test]
-    environment: 
-      name: pypi
-      url: https://pypi.org/p/redis-mcp-server
+    environment:
+      name: ${{ github.event.inputs.environment || 'pypi' }}
+      url: ${{ github.event.inputs.environment == 'testpypi' && 'https://test.pypi.org/p/redis-mcp-server' || 'https://pypi.org/p/redis-mcp-server' }}
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
       contents: read
@@ -158,10 +177,21 @@ jobs:
         subject-path: 'dist/*'
 
     - name: ⚙️ Publish to PyPI
+      if: ${{ !inputs.dry_run }}
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
+        repository-url: ${{ github.event.inputs.environment == 'testpypi' && 'https://test.pypi.org/legacy/' || '' }}
         print-hash: true
         attestations: true
+
+    - name: ⚙️ Dry run - Package ready for publishing
+      if: ${{ inputs.dry_run }}
+      run: |
+        echo "🔍 DRY RUN MODE - Package built successfully but not published"
+        echo "📦 Built packages:"
+        ls -la dist/
+        echo ""
+        echo "✅ Package is ready for publishing to ${{ github.event.inputs.environment || 'pypi' }}"
 
     - name: ⚙️ Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -177,6 +207,20 @@ jobs:
     steps:
     - name: ⚙️ Success notification
       run: |
-        echo "🎉 Successfully released Redis MCP Server v${{ needs.validate-release.outputs.version }} to PyPI!"
-        echo "📦 Package: https://pypi.org/project/redis-mcp-server/${{ needs.validate-release.outputs.version }}/"
-        echo "🏷️ Release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+        if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+          echo "🔍 DRY RUN COMPLETED - Redis MCP Server v${{ github.event.inputs.version || needs.validate-release.outputs.version }} ready for release!"
+          echo "📦 Package built successfully but not published"
+          echo "🎯 Target environment: ${{ github.event.inputs.environment || 'pypi' }}"
+        else
+          echo "🎉 Successfully released Redis MCP Server v${{ github.event.inputs.version || needs.validate-release.outputs.version }} to ${{ github.event.inputs.environment || 'PyPI' }}!"
+          if [[ "${{ github.event.inputs.environment }}" == "testpypi" ]]; then
+            echo "📦 Package: https://test.pypi.org/project/redis-mcp-server/${{ github.event.inputs.version || needs.validate-release.outputs.version }}/"
+          else
+            echo "📦 Package: https://pypi.org/project/redis-mcp-server/${{ github.event.inputs.version || needs.validate-release.outputs.version }}/"
+          fi
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "🏷️ Release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+          else
+            echo "🚀 Manual release triggered by: ${{ github.actor }}"
+          fi
+        fi
