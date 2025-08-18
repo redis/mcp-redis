@@ -20,7 +20,7 @@ jobs:
         egress-policy: audit
 
     - name: ⚙️ Checkout the project
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0  # Full history for UV build
 
@@ -42,7 +42,7 @@ jobs:
         egress-policy: audit
 
     - name: ⚙️ Checkout the project
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
@@ -86,7 +86,7 @@ jobs:
         egress-policy: audit
 
     - name: ⚙️ Checkout the project
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
@@ -131,7 +131,7 @@ jobs:
         egress-policy: audit
 
     - name: ⚙️ Checkout the project
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0  # Full history for UV build
 
