@@ -35,8 +35,8 @@ def _create_server_process(project_root):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        encoding='utf-8',
-        errors='replace',  # Replace invalid characters instead of failing
+        encoding="utf-8",
+        errors="replace",  # Replace invalid characters instead of failing
         env={"REDIS_HOST": "localhost", "REDIS_PORT": "6379", **dict(os.environ)},
     )
 
@@ -102,13 +102,15 @@ class TestMCPServerIntegration:
                 # If there's output available, try to read it
                 if ready:
                     try:
-                        output = server_process.stdout.read(1)  # Read just one character
+                        output = server_process.stdout.read(
+                            1
+                        )  # Read just one character
                         # If we get here, Unicode handling is working
                         assert True
                     except UnicodeDecodeError:
                         pytest.fail("Unicode decode error occurred")
 
-        except Exception as e:
+        except Exception:
             # If any other error occurs, that's fine - we're just testing Unicode handling
             pass
 
