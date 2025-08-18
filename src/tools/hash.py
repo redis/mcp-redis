@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 from redis.exceptions import RedisError
 
@@ -9,7 +7,7 @@ from src.common.server import mcp
 
 @mcp.tool()
 async def hset(
-    name: str, key: str, value: Union[str, int, float], expire_seconds: int = None
+    name: str, key: str, value: str | int | float, expire_seconds: int = None
 ) -> str:
     """Set a field in a hash stored at key with an optional expiration time.
 

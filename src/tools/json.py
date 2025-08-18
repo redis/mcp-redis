@@ -1,5 +1,5 @@
 import json
-from typing import Union, Mapping, List, TYPE_CHECKING, Any
+from typing import Union, Mapping, List, TYPE_CHECKING
 from redis.exceptions import RedisError
 
 from src.common.connection import RedisConnectionManager
