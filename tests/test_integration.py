@@ -102,9 +102,7 @@ class TestMCPServerIntegration:
                 # If there's output available, try to read it
                 if ready:
                     try:
-                        output = server_process.stdout.read(
-                            1
-                        )  # Read just one character
+                        server_process.stdout.read(1)  # Read just one character
                         # If we get here, Unicode handling is working
                         assert True
                     except UnicodeDecodeError:
