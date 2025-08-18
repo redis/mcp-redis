@@ -21,7 +21,7 @@ class TestStringOperations:
 
         result = await set("test_key", "test_value")
 
-        mock_redis.set.assert_called_once_with("test_key", "test_value")
+        mock_redis.set.assert_called_once_with("test_key", b"test_value")
         assert "Successfully set test_key" in result
 
     @pytest.mark.asyncio
@@ -32,7 +32,7 @@ class TestStringOperations:
 
         result = await set("test_key", "test_value", 60)
 
-        mock_redis.setex.assert_called_once_with("test_key", 60, "test_value")
+        mock_redis.setex.assert_called_once_with("test_key", 60, b"test_value")
         assert "Successfully set test_key" in result
         assert "with expiration 60 seconds" in result
 
@@ -102,13 +102,12 @@ class TestStringOperations:
     async def test_get_empty_string_value(self, mock_redis_connection_manager):
         """Test string get operation returning empty string."""
         mock_redis = mock_redis_connection_manager
-        mock_redis.get.return_value = ""
+        mock_redis.get.return_value = b""  # Redis returns bytes
 
         result = await get("test_key")
 
-        # Current implementation treats empty string as falsy, so it returns "does not exist"
-        # This is actually a bug - empty string is a valid Redis value
-        assert "Key test_key does not exist" in result
+        # The implementation correctly handles empty bytes and returns empty string
+        assert result == ""
 
     @pytest.mark.asyncio
     async def test_set_with_zero_expiration(self, mock_redis_connection_manager):
@@ -119,7 +118,7 @@ class TestStringOperations:
         result = await set("test_key", "test_value", 0)
 
         # Should use regular set, not setex for zero expiration
-        mock_redis.set.assert_called_once_with("test_key", "test_value")
+        mock_redis.set.assert_called_once_with("test_key", b"test_value")
         assert "Successfully set test_key" in result
 
     @pytest.mark.asyncio
@@ -131,7 +130,7 @@ class TestStringOperations:
         result = await set("test_key", "test_value", -1)
 
         # Negative expiration is truthy in Python, so setex is called
-        mock_redis.setex.assert_called_once_with("test_key", -1, "test_value")
+        mock_redis.setex.assert_called_once_with("test_key", -1, b"test_value")
         assert "Successfully set test_key" in result
         assert "with expiration -1 seconds" in result
 
@@ -143,7 +142,7 @@ class TestStringOperations:
 
         result = await set("test_key", "test_value", 86400)  # 24 hours
 
-        mock_redis.setex.assert_called_once_with("test_key", 86400, "test_value")
+        mock_redis.setex.assert_called_once_with("test_key", 86400, b"test_value")
         assert "with expiration 86400 seconds" in result
 
     @pytest.mark.asyncio
@@ -167,7 +166,9 @@ class TestStringOperations:
         unicode_value = "测试值 🚀"
         result = await set("test_key", unicode_value)
 
-        mock_redis.set.assert_called_once_with("test_key", unicode_value)
+        mock_redis.set.assert_called_once_with(
+            "test_key", unicode_value.encode("utf-8")
+        )
         assert "Successfully set test_key" in result
 
     @pytest.mark.asyncio
@@ -183,6 +184,8 @@ class TestStringOperations:
             await set("test_key", "test_value")
 
             mock_get_conn.assert_called_once()
+            # Verify the actual call was made with bytes
+            mock_redis.set.assert_called_once_with("test_key", b"test_value")
 
     @pytest.mark.asyncio
     async def test_function_signatures(self):

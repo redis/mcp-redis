@@ -2,6 +2,8 @@
 Unit tests for src/tools/json.py
 """
 
+import json
+
 import pytest
 from redis.exceptions import RedisError
 
@@ -82,7 +84,8 @@ class TestJSONOperations:
         result = await json_get("test_doc", "$")
 
         mock_redis.json.return_value.get.assert_called_once_with("test_doc", "$")
-        assert result == sample_json_data
+        # json_get returns a JSON string representation
+        assert result == json.dumps(sample_json_data, ensure_ascii=False, indent=2)
 
     @pytest.mark.asyncio
     async def test_json_get_specific_field(self, mock_redis_connection_manager):
@@ -93,7 +96,8 @@ class TestJSONOperations:
         result = await json_get("test_doc", "$.name")
 
         mock_redis.json.return_value.get.assert_called_once_with("test_doc", "$.name")
-        assert result == ["John Doe"]
+        # json_get returns a JSON string representation
+        assert result == json.dumps(["John Doe"], ensure_ascii=False, indent=2)
 
     @pytest.mark.asyncio
     async def test_json_get_default_path(
@@ -106,7 +110,8 @@ class TestJSONOperations:
         result = await json_get("test_doc")
 
         mock_redis.json.return_value.get.assert_called_once_with("test_doc", "$")
-        assert result == sample_json_data
+        # json_get returns a JSON string representation
+        assert result == json.dumps(sample_json_data, ensure_ascii=False, indent=2)
 
     @pytest.mark.asyncio
     async def test_json_get_not_found(self, mock_redis_connection_manager):
@@ -226,7 +231,8 @@ class TestJSONOperations:
         mock_redis.json.return_value.get.assert_called_once_with(
             "test_doc", "$.items[0]"
         )
-        assert result == ["first_item"]
+        # json_get returns a JSON string representation
+        assert result == json.dumps(["first_item"], ensure_ascii=False, indent=2)
 
     @pytest.mark.asyncio
     async def test_json_operations_with_numeric_values(
@@ -243,7 +249,7 @@ class TestJSONOperations:
 
         # Get numeric value
         result = await json_get("test_doc", "$.count")
-        assert result == [42]
+        assert result == json.dumps([42], ensure_ascii=False, indent=2)
 
     @pytest.mark.asyncio
     async def test_json_operations_with_boolean_values(
@@ -262,7 +268,7 @@ class TestJSONOperations:
 
         # Get boolean value
         result = await json_get("test_doc", "$.active")
-        assert result == [True]
+        assert result == json.dumps([True], ensure_ascii=False, indent=2)
 
     @pytest.mark.asyncio
     async def test_json_set_expiration_error(self, mock_redis_connection_manager):
@@ -310,4 +316,4 @@ class TestJSONOperations:
 
         # Get null value
         result = await json_get("test_doc", "$.optional_field")
-        assert result == [None]
+        assert result == json.dumps([None], ensure_ascii=False, indent=2)
