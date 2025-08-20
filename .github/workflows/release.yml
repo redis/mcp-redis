@@ -162,9 +162,48 @@ jobs:
     - name: ⚙️ Set up Python
       run: uv python install 3.12
 
-    - name: ⚙️ Build package
+    - name: ⚙️ Override version in pyproject.toml
+      if: (github.event_name == 'workflow_dispatch' && github.event.inputs.version) || github.event_name == 'release'
       run: |
-        uv build --sdist --wheel
+          # Determine the target version
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TARGET_VERSION="${{ github.event.inputs.version }}"
+            echo "Overriding version from manual trigger: $TARGET_VERSION"
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            RELEASE_TAG="${{ github.event.release.tag_name }}"
+            TARGET_VERSION=$(echo "$RELEASE_TAG" | sed 's/^v//')
+            echo "Overriding version from release tag: $TARGET_VERSION (tag: $RELEASE_TAG)"
+          fi
+          
+          # Get current version for comparison
+          CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "Current version in pyproject.toml: $CURRENT_VERSION"
+          
+          # Check if override is needed
+          if [[ "$CURRENT_VERSION" == "$TARGET_VERSION" ]]; then
+            echo "Version already matches target: $TARGET_VERSION"
+          else
+            echo "Version override needed: $CURRENT_VERSION → $TARGET_VERSION"
+          
+            # Update version in pyproject.toml
+            sed -i "s/^version = \".*\"/version = \"$TARGET_VERSION\"/" pyproject.toml
+          
+            # Verify the change
+            NEW_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+            echo "Updated version in pyproject.toml: $NEW_VERSION"
+          
+            # Validate the change was successful
+            if [[ "$NEW_VERSION" != "$TARGET_VERSION" ]]; then
+              echo "Version override failed! Expected: $TARGET_VERSION, Got: $NEW_VERSION"
+              exit 1
+            fi
+          
+            echo "Version successfully changed: $CURRENT_VERSION → $NEW_VERSION"
+          fi
+
+      - name: ⚙️ Build package
+        run: |
+          uv build --sdist --wheel
 
     - name: ⚙️ Check package
       run: |

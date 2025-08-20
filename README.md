@@ -1,10 +1,12 @@
 # Redis MCP Server
 [![Integration](https://github.com/redis/mcp-redis/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/redis/mcp-redis/actions/workflows/ci.yml)
-[![Python Version](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/downloads/)
+[![PyPI - Version](https://img.shields.io/pypi/v/redis-mcp-server)](https://pypi.org/project/redis-mcp-server/)
+[![Python Version](https://img.shields.io/badge/python-3.13%2B-blue&logo=redis)](https://www.python.org/downloads/)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE.txt)
 [![smithery badge](https://smithery.ai/badge/@redis/mcp-redis)](https://smithery.ai/server/@redis/mcp-redis)
 [![Verified on MseeP](https://mseep.ai/badge.svg)](https://mseep.ai/app/70102150-efe0-4705-9f7d-87980109a279)
-![Docker Image Version](https://img.shields.io/docker/v/mcp/redis?sort=semver&logo=docker&label=Docker)
+[![Docker Image Version](https://img.shields.io/docker/v/mcp/redis?sort=semver&logo=docker&label=Docker)](https://hub.docker.com/r/mcp/redis)
+[![codecov](https://codecov.io/gh/redis/mcp-redis/branch/master/graph/badge.svg?token=yenl5fzxxr)](https://codecov.io/gh/redis/mcp-redis)
 
 
 [![Discord](https://img.shields.io/discord/697882427875393627.svg?style=social&logo=discord)](https://discord.gg/redis)
@@ -52,6 +54,7 @@ The Redis MCP Server is a **natural language interface** designed for agentic ap
 - **Full Redis Support**: Handles **hashes, lists, sets, sorted sets, streams**, and more.
 - **Search & Filtering**: Supports efficient data retrieval and searching in Redis.
 - **Scalable & Lightweight**: Designed for **high-performance** data operations.
+- The Redis MCP Server supports the `stdio` [transport](https://modelcontextprotocol.io/docs/concepts/transports#standard-input%2Foutput-stdio). Support to the `stremable-http` transport will be added in the future.
 
 ## Tools
 
@@ -73,11 +76,21 @@ Additional tools.
 
 ## Installation
 
-The Redis MCP Server supports the `stdio` [transport](https://modelcontextprotocol.io/docs/concepts/transports#standard-input%2Foutput-stdio). Support to the `stremable-http` transport will be added in the future.
+The Redis MCP Server is available as a Python package, and can be installed from PyPI.
 
-> No PyPi package is available at the moment.
+```sh
+pip install redis-mcp-server
+```
 
-### Quick Start with uvx 
+Alternatively you can use `uv` to install the package and its dependencies.
+
+```sh
+uv python install 3.13
+uv sync
+uv run redis-mcp-server --url redis://localhost:6379/0
+```
+
+### Running the latest bits
 
 The easiest way to use the Redis MCP Server is with `uvx`, which allows you to run it directly from GitHub (from a branch, or use a tagged release). It is recommended to use a tagged release, the `main` branch is under active development and may contain breaking changes. As an example, you can execute the following command to run the `0.2.0` release:
 
