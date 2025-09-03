@@ -400,7 +400,7 @@ You can start the GitHub desired version of the Redis MCP server using `uvx` by 
 ```json
 "mcp": {
     "servers": {
-        "Redis MCP Server": {
+        "redis": {
         "type": "stdio",
         "command": "uvx", 
         "args": [
@@ -416,6 +416,7 @@ You can start the GitHub desired version of the Redis MCP server using `uvx` by 
 Alternatively, you can start the server using `uv` and configure your `mcp.json` or `settings.json`. This is usually desired for development.
 
 ```json
+// mcp.json
 {
   "servers": {
     "redis": {
@@ -439,6 +440,7 @@ Alternatively, you can start the server using `uv` and configure your `mcp.json`
 ```
 
 ```json
+// settings.json
 {
   "mcp": {
     "servers": {
@@ -465,6 +467,7 @@ Alternatively, you can start the server using `uv` and configure your `mcp.json`
 
 For more information, see the [VS Code documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
 
+You can prompt the copilot chat to use the Redis MCP tools by including `#redis` in your chat.
 
 ## Testing
 
