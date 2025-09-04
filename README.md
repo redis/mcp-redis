@@ -28,7 +28,9 @@ The Redis MCP Server is a **natural language interface** designed for agentic ap
 - [Features](#features)
 - [Tools](#tools)
 - [Installation](#installation)
-  - [Quick Start with uvx](#quick-start-with-uvx)
+  - [From PyPI (recommended)](#from-pypi-recommended)
+  - [Testing the PyPI package](#testing-the-pypi-package)
+  - [From GitHub](#from-github)
   - [Development Installation](#development-installation)
   - [With Docker](#with-docker)
 - [Configuration](#configuration)
@@ -76,13 +78,40 @@ Additional tools.
 
 ## Installation
 
-The Redis MCP Server is available as a Python package, and can be installed from PyPI.
+The Redis MCP Server is available as a PyPI package and as direct installation from the GitHub repository. 
+
+### From PyPI (recommended)
+Configuring the latest Redis MCP Server version from PyPI, as an example, can be done importing the following JSON configuration in the desired framework or tool.
+The `uvx` command will download the server on the fly (if not cached already), create a temporary environment, and then run it.
+
+```commandline
+{
+  "mcpServers": {
+    "RedisMCPServer": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "redis-mcp-server@latest",
+        "redis-mcp-server",
+        "--url",
+        "\"redis://localhost:6379/0\""
+      ]
+    }
+  }
+}
+```
+
+You will find examples for different platforms along the README.
+
+### Testing the PyPI package
+
+You can install the package as follows:
 
 ```sh
 pip install redis-mcp-server
 ```
 
-Alternatively you can use `uv` to install the package and its dependencies.
+And start it using `uv` the package in your environment.
 
 ```sh
 uv python install 3.13
@@ -90,9 +119,15 @@ uv sync
 uv run redis-mcp-server --url redis://localhost:6379/0
 ```
 
-### Running the latest bits
+However, starting the MCP Server is most useful when delegate to the framework or tool where this MCP Server is configured.
 
-The easiest way to use the Redis MCP Server is with `uvx`, which allows you to run it directly from GitHub (from a branch, or use a tagged release). It is recommended to use a tagged release, the `main` branch is under active development and may contain breaking changes. As an example, you can execute the following command to run the `0.2.0` release:
+### From GitHub
+
+You can configure the desired Redis MCP Server version with `uvx`, which allows you to run it directly from GitHub (from a branch, or use a tagged release).
+
+> It is recommended to use a tagged release, the `main` branch is under active development and may contain breaking changes. 
+
+As an example, you can execute the following command to run the `0.2.0` release:
 
 ```commandline
 uvx --from git+https://github.com/redis/mcp-redis.git@0.2.0 redis-mcp-server --url redis://localhost:6379/0
@@ -229,21 +264,21 @@ When using the CLI interface, you can configure the server with command line arg
 
 ```sh
 # Basic Redis connection
-uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server \
+uvx --from redis-mcp-server@latest redis-mcp-server \
   --host localhost \
   --port 6379 \
   --password mypassword
 
 # Using Redis URI (simpler)
-uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server \
+uvx --from redis-mcp-server@latest redis-mcp-server \
   --url redis://user:pass@localhost:6379/0
 
 # SSL connection
-uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server \
+uvx --from redis-mcp-server@latest redis-mcp-server \
   --url rediss://user:pass@redis.example.com:6379/0
 
 # See all available options
-uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server --help
+uvx --from redis-mcp-server@latest redis-mcp-server --help
 ```
 
 **Available CLI Options:**
@@ -337,7 +372,9 @@ You can troubleshoot your agent workflows using the [OpenAI dashboard](https://p
 
 ### Augment
 
-You can configure the Redis MCP Server in Augment by importing the server via JSON:
+The preferred way of configuring the Redis MCP Server in Augment is to use the [Easy MCP](https://docs.augmentcode.com/setup-augment/mcp#redis) feature.
+
+You can also configure the Redis MCP Server in Augment manually by importing the server via JSON:
 
 ```json
 {
@@ -346,7 +383,7 @@ You can configure the Redis MCP Server in Augment by importing the server via JS
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/redis/mcp-redis.git",
+        "redis-mcp-server@latest",
         "redis-mcp-server",
         "--url",
         "redis://localhost:6379/0"
@@ -362,17 +399,17 @@ The simplest way to configure MCP clients is using `uvx`. Add the following JSON
 
 ```json
 {
-    "mcpServers": {
-        "redis-mcp-server": {
-            "type": "stdio",
-            "command": "/Users/mortensi/.local/bin/uvx",
-            "args": [
-                "--from", "git+https://github.com/redis/mcp-redis.git",
-                "redis-mcp-server",
-                "--url", "redis://localhost:6379/0"
-            ]
-        }
+  "mcpServers": {
+    "redis-mcp-server": {
+        "type": "stdio",
+        "command": "/Users/mortensi/.local/bin/uvx",
+        "args": [
+            "--from", "redis-mcp-server@latest",
+            "redis-mcp-server",
+            "--url", "redis://localhost:6379/0"
+        ]
     }
+  }
 }
 ```
 
@@ -404,7 +441,7 @@ You can start the GitHub desired version of the Redis MCP server using `uvx` by 
         "type": "stdio",
         "command": "uvx", 
         "args": [
-            "--from", "git+https://github.com/redis/mcp-redis.git",
+            "--from", "redis-mcp-server@latest",
             "redis-mcp-server",
             "--url", "redis://localhost:6379/0"
         ]
