@@ -20,6 +20,9 @@ REDIS_CFG = {
     "db": int(os.getenv("REDIS_DB", 0)),
 }
 
+# ConvAI API configuration
+MCP_DOCS_SEARCH_URL = os.getenv('MCP_DOCS_SEARCH_URL')
+
 
 def parse_redis_uri(uri: str) -> dict:
     """Parse a Redis URI and return connection parameters."""

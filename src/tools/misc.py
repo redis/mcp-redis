@@ -1,9 +1,12 @@
 from typing import Any, Dict
+import json
+import aiohttp
 
 from redis.exceptions import RedisError
 
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
+from src.common.config import MCP_DOCS_SEARCH_URL
 
 
 @mcp.tool()
@@ -190,3 +193,68 @@ async def scan_all_keys(pattern: str = "*", batch_size: int = 100) -> list:
         return all_keys
     except RedisError as e:
         return f"Error scanning all keys with pattern '{pattern}': {str(e)}"
+
+
+@mcp.tool()
+async def search_documents(question: str) -> Dict[str, Any]:
+    """Search Redis documentation and knowledge base to learn about Redis concepts and use cases.
+
+    This tool exposes updated and curated documentation, and must be invoked every time the user wants to learn more in areas including:
+
+    **Data Structures:**
+    - Hashes: Key-value pairs within a key, perfect for objects and records
+    - Sets: Unordered collections of unique strings
+    - Sorted Sets: Ordered collections with scores for ranking and leaderboards
+    - Lists: Ordered collections supporting push/pop operations
+    - Bitmaps: Bit-level operations for analytics and feature flags
+    - Streams: Log-like data structure for event sourcing and messaging
+    - JSON: Native JSON document storage and manipulation
+    - Pub/Sub: Real-time messaging and event broadcasting
+    - Full-text Search: Text indexing and search capabilities
+    - Vector Search: Semantic similarity search with embeddings
+    - Transactions: ACID operations with MULTI/EXEC
+    - Lua Scripting: Server-side script execution
+
+    **Common Use Cases:**
+    - Session Management: User session storage and management
+    - Caching: Application-level and database query caching
+    - Rate Limiting: API throttling and request limiting
+    - Leaderboards: Gaming and ranking systems
+    - Semantic Search: AI-powered similarity search
+    - Agentic Workflows: AI agent state and memory management
+    - RAG (Retrieval-Augmented Generation): Vector storage for AI applications
+    - Real-time Analytics: Counters, metrics, and time-series data
+    - Message Queues: Task queues and job processing
+    - Geospatial: Location-based queries and proximity search
+
+    Args:
+        question: The question about Redis concepts, data structures, features, or use cases
+
+    Returns:
+        Dict[str, Any]: The JSON response from the API endpoint containing relevant Redis documentation and examples, or an error message.
+    """
+    if not MCP_DOCS_SEARCH_URL:
+        return {"error": "MCP_DOCS_SEARCH_URL environment variable is not configured"}
+
+    if not question.strip():
+        return {"error": "Question parameter cannot be empty"}
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url=MCP_DOCS_SEARCH_URL,
+                params={"q": question}
+            ) as response:
+                # Try to parse JSON response
+                try:
+                    result = await response.json()
+                    return result
+                except aiohttp.ContentTypeError:
+                    # If not JSON, return text content
+                    text_content = await response.text()
+                    return {"error": f"Non-JSON response: {text_content}"}
+
+    except aiohttp.ClientError as e:
+        return {"error": f"HTTP client error: {str(e)}"}
+    except Exception as e:
+        return {"error": f"Unexpected error calling ConvAI API: {str(e)}"}
