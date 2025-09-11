@@ -248,7 +248,11 @@ async def search_documents(question: str) -> Dict[str, Any]:
                 # Try to parse JSON response
                 try:
                     result = await response.json()
-                    return result
+                    if isinstance(result, list):
+                        return {"query": question, "results": result}
+                    if isinstance(result, dict):
+                        return result
+                    return {"query": question, "results": [result]}
                 except aiohttp.ContentTypeError:
                     # If not JSON, return text content
                     text_content = await response.text()
