@@ -432,22 +432,20 @@ To use the Redis MCP Server with VS Code, you must nable the [agent mode](https:
 }
 ```
 
-You can start the GitHub desired version of the Redis MCP server using `uvx` by adding the following JSON to your `settings.json`:
+You can start the GitHub desired version of the Redis MCP server using `uvx` by adding the following JSON to your `mcp.json` file:
 
 ```json
-"mcp": {
-    "servers": {
-        "Redis MCP Server": {
-        "type": "stdio",
-        "command": "uvx", 
-        "args": [
-            "--from", "redis-mcp-server@latest",
-            "redis-mcp-server",
-            "--url", "redis://localhost:6379/0"
-        ]
-        },
-    }
-},
+"servers": {
+  "Redis MCP Server": {
+    "type": "stdio",
+    "command": "uvx", 
+    "args": [
+      "--from", "redis-mcp-server@latest",
+      "redis-mcp-server",
+      "--url", "redis://localhost:6379/0"
+    ]
+  },
+}
 ```
 
 Alternatively, you can start the server using `uv` and configure your `mcp.json` or `settings.json`. This is usually desired for development.
