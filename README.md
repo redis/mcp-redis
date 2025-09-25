@@ -24,32 +24,30 @@ The Redis MCP Server is a **natural language interface** designed for agentic ap
 - "Index and search this vector"
 
 ## Table of Contents
-- [Redis MCP Server](#redis-mcp-server)
-  - [Overview](#overview)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Tools](#tools)
-  - [Installation](#installation)
-    - [From PyPI (recommended)](#from-pypi-recommended)
-    - [Testing the PyPI package](#testing-the-pypi-package)
-    - [From GitHub](#from-github)
-    - [Development Installation](#development-installation)
-    - [With Docker](#with-docker)
-  - [Configuration](#configuration)
-    - [Redis ACL](#redis-acl)
-    - [Configuration via command line arguments](#configuration-via-command-line-arguments)
-    - [Configuration via Environment Variables](#configuration-via-environment-variables)
-  - [Integrations](#integrations)
-    - [OpenAI Agents SDK](#openai-agents-sdk)
-    - [Augment](#augment)
-    - [Claude Desktop](#claude-desktop)
-    - [VS Code with GitHub Copilot](#vs-code-with-github-copilot)
-  - [Testing](#testing)
-  - [Example Use Cases](#example-use-cases)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Badges](#badges)
-  - [Contact](#contact)
+- [Overview](#overview)
+- [Features](#features)
+- [Tools](#tools)
+- [Installation](#installation)
+  - [From PyPI (recommended)](#from-pypi-recommended)
+  - [Testing the PyPI package](#testing-the-pypi-package)
+  - [From GitHub](#from-github)
+  - [Development Installation](#development-installation)
+  - [With Docker](#with-docker)
+- [Configuration](#configuration)
+  - [Redis ACL](#redis-acl)
+  - [Configuration via command line arguments](#configuration-via-command-line-arguments)
+  - [Configuration via Environment Variables](#configuration-via-environment-variables)
+- [Integrations](#integrations)
+  - [OpenAI Agents SDK](#openai-agents-sdk)
+  - [Augment](#augment)
+  - [Claude Desktop](#claude-desktop)
+  - [VS Code with GitHub Copilot](#vs-code-with-github-copilot)
+- [Testing](#testing)
+- [Example Use Cases](#example-use-cases)
+- [Contributing](#contributing)
+- [License](#license)
+- [Badges](#badges)
+- [Contact](#contact)
 
 
 ## Features
@@ -477,6 +475,8 @@ Alternatively, you can start the server using `uv` and configure your `mcp.json`
 
 For more information, see the [VS Code documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
 
+> **Note:** Starting with [VS Code v1.102](https://code.visualstudio.com/updates/v1_102),  
+> MCP servers are now stored in a dedicated `mcp.json` file instead of `settings.json`. 
 
 ## Testing
 
