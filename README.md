@@ -24,30 +24,32 @@ The Redis MCP Server is a **natural language interface** designed for agentic ap
 - "Index and search this vector"
 
 ## Table of Contents
-- [Overview](#overview)
-- [Features](#features)
-- [Tools](#tools)
-- [Installation](#installation)
-  - [From PyPI (recommended)](#from-pypi-recommended)
-  - [Testing the PyPI package](#testing-the-pypi-package)
-  - [From GitHub](#from-github)
-  - [Development Installation](#development-installation)
-  - [With Docker](#with-docker)
-- [Configuration](#configuration)
-  - [Redis ACL](#redis-acl)
-  - [Configuration via command line arguments](#configuration-via-command-line-arguments)
-  - [Configuration via Environment Variables](#configuration-via-environment-variables)
-- [Integrations](#integrations)
-  - [OpenAI Agents SDK](#openai-agents-sdk)
-  - [Augment](#augment)
-  - [Claude Desktop](#claude-desktop)
-  - [VS Code with GitHub Copilot](#vs-code-with-github-copilot)
-- [Testing](#testing)
-- [Example Use Cases](#example-use-cases)
-- [Contributing](#contributing)
-- [License](#license)
-- [Badges](#badges)
-- [Contact](#contact)
+- [Redis MCP Server](#redis-mcp-server)
+  - [Overview](#overview)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Tools](#tools)
+  - [Installation](#installation)
+    - [From PyPI (recommended)](#from-pypi-recommended)
+    - [Testing the PyPI package](#testing-the-pypi-package)
+    - [From GitHub](#from-github)
+    - [Development Installation](#development-installation)
+    - [With Docker](#with-docker)
+  - [Configuration](#configuration)
+    - [Redis ACL](#redis-acl)
+    - [Configuration via command line arguments](#configuration-via-command-line-arguments)
+    - [Configuration via Environment Variables](#configuration-via-environment-variables)
+  - [Integrations](#integrations)
+    - [OpenAI Agents SDK](#openai-agents-sdk)
+    - [Augment](#augment)
+    - [Claude Desktop](#claude-desktop)
+    - [VS Code with GitHub Copilot](#vs-code-with-github-copilot)
+  - [Testing](#testing)
+  - [Example Use Cases](#example-use-cases)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Badges](#badges)
+  - [Contact](#contact)
 
 
 ## Features
@@ -448,7 +450,7 @@ You can start the GitHub desired version of the Redis MCP server using `uvx` by 
 }
 ```
 
-Alternatively, you can start the server using `uv` and configure your `mcp.json` or `settings.json`. This is usually desired for development.
+Alternatively, you can start the server using `uv` and configure your `mcp.json`. This is usually desired for development.
 
 ```json
 {
@@ -467,31 +469,6 @@ Alternatively, you can start the server using `uv` and configure your `mcp.json`
         "REDIS_PORT": "<your_redis_database_port>",
         "REDIS_USERNAME": "<your_redis_database_username>",
         "REDIS_PWD": "<your_redis_database_password>",
-      }
-    }
-  }
-}
-```
-
-```json
-{
-  "mcp": {
-    "servers": {
-      "redis": {
-        "type": "stdio",
-        "command": "<full_path_uv_command>",
-        "args": [
-          "--directory",
-          "<your_mcp_server_directory>",
-          "run",
-          "src/main.py"
-        ],
-        "env": {
-          "REDIS_HOST": "<your_redis_database_hostname>",
-          "REDIS_PORT": "<your_redis_database_port>",
-          "REDIS_USERNAME": "<your_redis_database_username>",
-          "REDIS_PWD": "<your_redis_database_password>",
-        }
       }
     }
   }
