@@ -432,25 +432,23 @@ To use the Redis MCP Server with VS Code, you must nable the [agent mode](https:
 }
 ```
 
-You can start the GitHub desired version of the Redis MCP server using `uvx` by adding the following JSON to your `settings.json`:
+You can start the GitHub desired version of the Redis MCP server using `uvx` by adding the following JSON to your `mcp.json` file:
 
 ```json
-"mcp": {
-    "servers": {
-        "Redis MCP Server": {
-        "type": "stdio",
-        "command": "uvx", 
-        "args": [
-            "--from", "redis-mcp-server@latest",
-            "redis-mcp-server",
-            "--url", "redis://localhost:6379/0"
-        ]
-        },
-    }
-},
+"servers": {
+  "Redis MCP Server": {
+    "type": "stdio",
+    "command": "uvx", 
+    "args": [
+      "--from", "redis-mcp-server@latest",
+      "redis-mcp-server",
+      "--url", "redis://localhost:6379/0"
+    ]
+  },
+}
 ```
 
-Alternatively, you can start the server using `uv` and configure your `mcp.json` or `settings.json`. This is usually desired for development.
+Alternatively, you can start the server using `uv` and configure your `mcp.json`. This is usually desired for development.
 
 ```json
 {
@@ -475,33 +473,10 @@ Alternatively, you can start the server using `uv` and configure your `mcp.json`
 }
 ```
 
-```json
-{
-  "mcp": {
-    "servers": {
-      "redis": {
-        "type": "stdio",
-        "command": "<full_path_uv_command>",
-        "args": [
-          "--directory",
-          "<your_mcp_server_directory>",
-          "run",
-          "src/main.py"
-        ],
-        "env": {
-          "REDIS_HOST": "<your_redis_database_hostname>",
-          "REDIS_PORT": "<your_redis_database_port>",
-          "REDIS_USERNAME": "<your_redis_database_username>",
-          "REDIS_PWD": "<your_redis_database_password>",
-        }
-      }
-    }
-  }
-}
-```
-
 For more information, see the [VS Code documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
 
+> **Note:** Starting with [VS Code v1.102](https://code.visualstudio.com/updates/v1_102),  
+> MCP servers are now stored in a dedicated `mcp.json` file instead of `settings.json`. 
 
 ## Testing
 
