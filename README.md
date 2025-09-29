@@ -37,6 +37,7 @@ The Redis MCP Server is a **natural language interface** designed for agentic ap
   - [Redis ACL](#redis-acl)
   - [Configuration via command line arguments](#configuration-via-command-line-arguments)
   - [Configuration via Environment Variables](#configuration-via-environment-variables)
+  - [Logging](#logging)
 - [Integrations](#integrations)
   - [OpenAI Agents SDK](#openai-agents-sdk)
   - [Augment](#augment)
@@ -78,7 +79,7 @@ Additional tools.
 
 ## Installation
 
-The Redis MCP Server is available as a PyPI package and as direct installation from the GitHub repository. 
+The Redis MCP Server is available as a PyPI package and as direct installation from the GitHub repository.
 
 ### From PyPI (recommended)
 Configuring the latest Redis MCP Server version from PyPI, as an example, can be done importing the following JSON configuration in the desired framework or tool.
@@ -125,7 +126,7 @@ However, starting the MCP Server is most useful when delegate to the framework o
 
 You can configure the desired Redis MCP Server version with `uvx`, which allows you to run it directly from GitHub (from a branch, or use a tagged release).
 
-> It is recommended to use a tagged release, the `main` branch is under active development and may contain breaking changes. 
+> It is recommended to use a tagged release, the `main` branch is under active development and may contain breaking changes.
 
 As an example, you can execute the following command to run the `0.2.0` release:
 
@@ -140,7 +141,7 @@ Additional examples are provided below.
 # Run with Redis URI
 uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server --url redis://localhost:6379/0
 
-# Run with Redis URI and SSL 
+# Run with Redis URI and SSL
 uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server --url "rediss://<USERNAME>:<PASSWORD>@<HOST>:<PORT>?ssl_cert_reqs=required&ssl_ca_certs=<PATH_TO_CERT>"
 
 # Run with individual parameters
@@ -318,7 +319,7 @@ If desired, you can use environment variables. Defaults are provided for all var
 
 There are several ways to set environment variables:
 
-1. **Using a `.env` File**:  
+1. **Using a `.env` File**:
 Place a `.env` file in your project directory with key-value pairs for each environment variable. Tools like `python-dotenv`, `pipenv`, and `uv` can automatically load these variables when running your application. This is a convenient and secure way to manage configuration, as it keeps sensitive data out of your shell history and version control (if `.env` is in `.gitignore`).
 For example, create a `.env` file with the following content from the `.env.example` file provided in the repository:
 
@@ -330,7 +331,7 @@ Then edit the `.env` file to set your Redis configuration:
 
 OR,
 
-2. **Setting Variables in the Shell**:  
+2. **Setting Variables in the Shell**:
 You can export environment variables directly in your shell before running your application. For example:
 
 ```sh
@@ -340,6 +341,46 @@ export REDIS_PORT=6379
 ```
 
 This method is useful for temporary overrides or quick testing.
+
+
+### Logging
+
+The server uses Python's standard logging and is configured at startup. By default it logs at WARNING and above. You can change verbosity with the `MCP_REDIS_LOG_LEVEL` environment variable.
+
+- Accepted values (case-insensitive): `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`, `NOTSET`
+- Aliases supported: `WARN` → `WARNING`, `FATAL` → `CRITICAL`
+- Numeric values are also accepted, including signed (e.g., `"10"`, `"+20"`)
+- Default when unset or unrecognized: `WARNING`
+
+Handler behavior
+- If the host (e.g., `uv`, VS Code, pytest) already installed console handlers, the server will NOT add its own; it only lowers overly-restrictive handler thresholds so your chosen level is not filtered out. It will never raise a handler's threshold.
+- If no handlers are present, the server adds a single stderr StreamHandler with a simple format.
+
+Examples
+```bash
+# See normal lifecycle messages
+MCP_REDIS_LOG_LEVEL=INFO uv run src/main.py
+
+# Very verbose for debugging
+MCP_REDIS_LOG_LEVEL=DEBUG uvx --from redis-mcp-server@latest redis-mcp-server --url redis://localhost:6379/0
+```
+
+In MCP client configs that support env, add it alongside your Redis settings. For example:
+```json
+{
+  "mcpServers": {
+    "redis": {
+      "command": "uvx",
+      "args": ["--from", "redis-mcp-server@latest", "redis-mcp-server", "--url", "redis://localhost:6379/0"],
+      "env": {
+        "REDIS_HOST": "localhost",
+        "REDIS_PORT": "6379",
+        "MCP_REDIS_LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
 
 
 ## Integrations
@@ -439,7 +480,7 @@ You can start the GitHub desired version of the Redis MCP server using `uvx` by 
     "servers": {
         "Redis MCP Server": {
         "type": "stdio",
-        "command": "uvx", 
+        "command": "uvx",
         "args": [
             "--from", "redis-mcp-server@latest",
             "redis-mcp-server",

@@ -127,6 +127,6 @@ class TestMCPServer:
 
         for attr in expected_attributes:
             assert hasattr(mcp, attr), f"MCP server missing attribute: {attr}"
-            assert callable(getattr(mcp, attr)), (
-                f"MCP server attribute {attr} is not callable"
-            )
+            assert callable(
+                getattr(mcp, attr)
+            ), f"MCP server attribute {attr} is not callable"

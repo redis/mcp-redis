@@ -1,14 +1,19 @@
 import sys
+import logging
 
 import click
 
 from src.common.config import parse_redis_uri, set_redis_config_from_cli
 from src.common.server import mcp
+from src.common.logging_utils import configure_logging
 
 
 class RedisMCPServer:
     def __init__(self):
-        print("Starting the Redis MCP Server", file=sys.stderr)
+        # Configure logging on server initialization (idempotent)
+        configure_logging()
+        self._logger = logging.getLogger(__name__)
+        self._logger.info("Starting the Redis MCP Server")
 
     def run(self):
         mcp.run()

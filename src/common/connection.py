@@ -1,4 +1,4 @@
-import sys
+import logging
 from typing import Optional, Type, Union
 
 import redis
@@ -7,6 +7,8 @@ from redis.cluster import RedisCluster
 
 from src.common.config import REDIS_CFG
 from src.version import __version__
+
+_logger = logging.getLogger(__name__)
 
 
 class RedisConnectionManager:
@@ -57,25 +59,25 @@ class RedisConnectionManager:
                 cls._instance = redis_class(**connection_params)
 
             except redis.exceptions.ConnectionError:
-                print("Failed to connect to Redis server", file=sys.stderr)
+                _logger.error("Failed to connect to Redis server")
                 raise
             except redis.exceptions.AuthenticationError:
-                print("Authentication failed", file=sys.stderr)
+                _logger.error("Authentication failed")
                 raise
             except redis.exceptions.TimeoutError:
-                print("Connection timed out", file=sys.stderr)
+                _logger.error("Connection timed out")
                 raise
             except redis.exceptions.ResponseError as e:
-                print(f"Response error: {e}", file=sys.stderr)
+                _logger.error("Response error: %s", e)
                 raise
             except redis.exceptions.RedisError as e:
-                print(f"Redis error: {e}", file=sys.stderr)
+                _logger.error("Redis error: %s", e)
                 raise
             except redis.exceptions.ClusterError as e:
-                print(f"Redis Cluster error: {e}", file=sys.stderr)
+                _logger.error("Redis Cluster error: %s", e)
                 raise
             except Exception as e:
-                print(f"Unexpected error: {e}", file=sys.stderr)
+                _logger.error("Unexpected error: %s", e)
                 raise
 
         return cls._instance
