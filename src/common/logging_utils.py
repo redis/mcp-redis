@@ -46,7 +46,10 @@ def configure_logging() -> int:
             if isinstance(cur, int) and cur != logging.NOTSET and cur > level:
                 h.setLevel(level)
         except Exception:
-            pass
+            # Log at DEBUG to avoid noisy stderr while still providing diagnostics.
+            logging.getLogger(__name__).debug(
+                "Failed to adjust handler level for handler %r", h, exc_info=True
+            )
 
     # Only add our own stderr handler if there are NO handlers at all.
     # Many hosts (pytest, uv, VS Code) install a console handler already.
