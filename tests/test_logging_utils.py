@@ -68,7 +68,9 @@ def test_configure_logging_adds_stderr_handler_when_none(monkeypatch, preserve_l
     level = configure_logging()
 
     assert level == logging.INFO
-    assert len(root.handlers) == 1, "Should add exactly one stderr handler when none exist"
+    assert len(root.handlers) == 1, (
+        "Should add exactly one stderr handler when none exist"
+    )
     handler = root.handlers[0]
     assert isinstance(handler, logging.StreamHandler)
     # StreamHandler exposes the underlying stream attribute
@@ -77,7 +79,9 @@ def test_configure_logging_adds_stderr_handler_when_none(monkeypatch, preserve_l
     assert root.level == logging.INFO
 
 
-def test_configure_logging_only_lowers_restrictive_handlers(monkeypatch, preserve_logging):
+def test_configure_logging_only_lowers_restrictive_handlers(
+    monkeypatch, preserve_logging
+):
     root = logging.getLogger()
     # Start from a clean handler set
     for h in list(root.handlers):
@@ -101,7 +105,9 @@ def test_configure_logging_only_lowers_restrictive_handlers(monkeypatch, preserv
     assert h_notset.level == logging.NOTSET
 
 
-def test_configure_logging_does_not_raise_handler_threshold(monkeypatch, preserve_logging):
+def test_configure_logging_does_not_raise_handler_threshold(
+    monkeypatch, preserve_logging
+):
     root = logging.getLogger()
     # Clean handlers
     for h in list(root.handlers):
@@ -121,7 +127,9 @@ def test_configure_logging_does_not_raise_handler_threshold(monkeypatch, preserv
     assert root.level == logging.ERROR
 
 
-def test_configure_logging_does_not_add_handler_if_exists(monkeypatch, preserve_logging):
+def test_configure_logging_does_not_add_handler_if_exists(
+    monkeypatch, preserve_logging
+):
     root = logging.getLogger()
     # Start with one existing handler
     for h in list(root.handlers):
@@ -135,4 +143,3 @@ def test_configure_logging_does_not_add_handler_if_exists(monkeypatch, preserve_
     # Should not add another handler
     assert len(root.handlers) == 1
     assert root.handlers[0] is existing
-
