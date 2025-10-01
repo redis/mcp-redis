@@ -2,6 +2,8 @@
 Unit tests for src/main.py
 """
 
+import logging
+
 from unittest.mock import Mock, patch
 
 import pytest
@@ -13,13 +15,21 @@ from src.main import RedisMCPServer, cli
 class TestRedisMCPServer:
     """Test cases for RedisMCPServer class."""
 
-    def test_init_prints_startup_message(self, capsys):
-        """Test that RedisMCPServer initialization prints startup message."""
-        server = RedisMCPServer()
-        assert server is not None
+    def test_init_logs_startup_message(self, capsys, caplog, monkeypatch):
+        """Startup should emit an INFO log; client may route it via handlers.
+        Accept either stderr output or log record text.
+        """
+        monkeypatch.setenv("MCP_REDIS_LOG_LEVEL", "INFO")
+
+        with caplog.at_level(logging.INFO):
+            server = RedisMCPServer()
+            assert server is not None
 
         captured = capsys.readouterr()
-        assert "Starting the Redis MCP Server" in captured.err
+        stderr_text = captured.err or ""
+        log_text = caplog.text or ""  # collected by pytest logging handler
+        combined = stderr_text + "\n" + log_text
+        assert "Starting the Redis MCP Server" in combined
 
     @patch("src.main.mcp.run")
     def test_run_calls_mcp_run(self, mock_mcp_run):
