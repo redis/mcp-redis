@@ -1,4 +1,5 @@
 import json
+from typing import List, Optional, Union, Dict, Any
 
 import numpy as np
 from redis.commands.search.field import VectorField
@@ -102,12 +103,12 @@ async def create_vector_index_hash(
 
 @mcp.tool()
 async def vector_search_hash(
-    query_vector: list,
+    query_vector: List[float],
     index_name: str = "vector_index",
     vector_field: str = "vector",
     k: int = 5,
-    return_fields: list = None,
-) -> list:
+    return_fields: Optional[List[str]] = None,
+) -> Union[List[Dict[str, Any]], str]:
     """
     Perform a KNN vector similarity search using Redis 8 or later version on vectors stored in hash data structures.
 

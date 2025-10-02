@@ -1,24 +1,44 @@
 import json
-from typing import Union, Mapping, List, TYPE_CHECKING
+from typing import Optional
 from redis.exceptions import RedisError
+from pydantic_core import core_schema
 
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
-# Define JsonType for type checking to match redis-py definition
-# Use object as runtime type to avoid issubclass() issues with Any in Python 3.10
-if TYPE_CHECKING:
-    JsonType = Union[
-        str, int, float, bool, None, Mapping[str, "JsonType"], List["JsonType"]
-    ]
-else:
-    # Use object at runtime to avoid MCP framework issubclass() issues
-    JsonType = object
+
+# Custom type that accepts any JSON value but generates a proper schema
+class JsonValue:
+    """Accepts any JSON-serializable value."""
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, _source_type, _handler):
+        """Define how Pydantic should validate this type."""
+        # Accept any value
+        return core_schema.any_schema()
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, _core_schema, _handler):
+        """Define the JSON schema for this type."""
+        # Return a schema that accepts string, number, boolean, object, array, or null
+        return {
+            "anyOf": [
+                {"type": "string"},
+                {"type": "number"},
+                {"type": "boolean"},
+                {"type": "object"},
+                {"type": "array", "items": {"type": "string"}},
+                {"type": "null"},
+            ]
+        }
 
 
 @mcp.tool()
 async def json_set(
-    name: str, path: str, value: JsonType, expire_seconds: int = None
+    name: str,
+    path: str,
+    value: JsonValue,
+    expire_seconds: Optional[int] = None,
 ) -> str:
     """Set a JSON value in Redis at a given path with an optional expiration time.
 

@@ -1,4 +1,5 @@
 import json
+from typing import Union, List, Optional
 
 from redis.exceptions import RedisError
 from redis.typing import FieldT
@@ -8,7 +9,7 @@ from src.common.server import mcp
 
 
 @mcp.tool()
-async def lpush(name: str, value: FieldT, expire: int = None) -> str:
+async def lpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
     """Push a value onto the left of a Redis list and optionally set an expiration time."""
     try:
         r = RedisConnectionManager.get_connection()
@@ -21,7 +22,7 @@ async def lpush(name: str, value: FieldT, expire: int = None) -> str:
 
 
 @mcp.tool()
-async def rpush(name: str, value: FieldT, expire: int = None) -> str:
+async def rpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
     """Push a value onto the right of a Redis list and optionally set an expiration time."""
     try:
         r = RedisConnectionManager.get_connection()
@@ -56,7 +57,7 @@ async def rpop(name: str) -> str:
 
 
 @mcp.tool()
-async def lrange(name: str, start: int, stop: int) -> list:
+async def lrange(name: str, start: int, stop: int) -> Union[str, List[str]]:
     """Get elements from a Redis list within a specific range.
 
     Returns:

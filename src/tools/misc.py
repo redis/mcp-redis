@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Union, List
 
 from redis.exceptions import RedisError
 
@@ -100,7 +100,9 @@ async def rename(old_key: str, new_key: str) -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def scan_keys(pattern: str = "*", count: int = 100, cursor: int = 0) -> dict:
+async def scan_keys(
+    pattern: str = "*", count: int = 100, cursor: int = 0
+) -> Union[str, Dict[str, Any]]:
     """
     Scan keys in the Redis database using the SCAN command (non-blocking, production-safe).
 
@@ -152,7 +154,9 @@ async def scan_keys(pattern: str = "*", count: int = 100, cursor: int = 0) -> di
 
 
 @mcp.tool()
-async def scan_all_keys(pattern: str = "*", batch_size: int = 100) -> list:
+async def scan_all_keys(
+    pattern: str = "*", batch_size: int = 100
+) -> Union[str, List[str]]:
     """
     Scan and return ALL keys matching a pattern using multiple SCAN iterations.
 

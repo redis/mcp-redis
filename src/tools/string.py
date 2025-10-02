@@ -1,5 +1,5 @@
 import json
-from typing import Union
+from typing import Union, Optional
 
 from redis.exceptions import RedisError
 from redis import Redis
@@ -10,7 +10,9 @@ from src.common.server import mcp
 
 @mcp.tool()
 async def set(
-    key: str, value: Union[str, bytes, int, float, dict], expiration: int = None
+    key: str,
+    value: Union[str, bytes, int, float, dict],
+    expiration: Optional[int] = None,
 ) -> str:
     """Set a Redis string value with an optional expiration time.
 

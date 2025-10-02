@@ -1,3 +1,5 @@
+from typing import List, Union, Optional
+
 import numpy as np
 from redis.exceptions import RedisError
 
@@ -7,7 +9,7 @@ from src.common.server import mcp
 
 @mcp.tool()
 async def hset(
-    name: str, key: str, value: str | int | float, expire_seconds: int = None
+    name: str, key: str, value: str | int | float, expire_seconds: Optional[int] = None
 ) -> str:
     """Set a field in a hash stored at key with an optional expiration time.
 
@@ -118,8 +120,8 @@ async def hexists(name: str, key: str) -> bool:
 
 @mcp.tool()
 async def set_vector_in_hash(
-    name: str, vector: list, vector_field: str = "vector"
-) -> bool:
+    name: str, vector: List[float], vector_field: str = "vector"
+) -> Union[bool, str]:
     """Store a vector as a field in a Redis hash.
 
     Args:
