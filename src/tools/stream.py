@@ -1,3 +1,5 @@
+from typing import Dict, Any, Optional
+
 from redis.exceptions import RedisError
 
 from src.common.connection import RedisConnectionManager
@@ -5,7 +7,9 @@ from src.common.server import mcp
 
 
 @mcp.tool()
-async def xadd(key: str, fields: dict, expiration: int = None) -> str:
+async def xadd(
+    key: str, fields: Dict[str, Any], expiration: Optional[int] = None
+) -> str:
     """Add an entry to a Redis stream with an optional expiration time.
 
     Args:
