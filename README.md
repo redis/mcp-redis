@@ -196,7 +196,7 @@ The following example is for Claude Desktop, but the same applies to any other M
                 "REDIS_PORT": "<your_redis_database_port>",
                 "REDIS_PWD": "<your_redis_database_password>",
                 "REDIS_SSL": True|False,
-                "REDIS_CA_PATH": "<your_redis_ca_path>",
+                "REDIS_SSL_CA_PATH": "<your_redis_ca_path>",
                 "REDIS_CLUSTER_MODE": True|False
             }
         }
@@ -309,11 +309,11 @@ If desired, you can use environment variables. Defaults are provided for all var
 | `REDIS_USERNAME`     | Default database username                                 | `"default"`   |
 | `REDIS_PWD`          | Default database password                                 | ""            |
 | `REDIS_SSL`          | Enables or disables SSL/TLS                               | `False`       |
-| `REDIS_CA_PATH`      | CA certificate for verifying server                       | None          |
+| `REDIS_SSL_CA_PATH`  | CA certificate for verifying server                       | None          |
 | `REDIS_SSL_KEYFILE`  | Client's private key file for client authentication       | None          |
 | `REDIS_SSL_CERTFILE` | Client's certificate file for client authentication       | None          |
-| `REDIS_CERT_REQS`    | Whether the client should verify the server's certificate | `"required"`  |
-| `REDIS_CA_CERTS`     | Path to the trusted CA certificates file                  | None          |
+| `REDIS_SSL_CERT_REQS`| Whether the client should verify the server's certificate | `"required"`  |
+| `REDIS_SSL_CA_CERTS` | Path to the trusted CA certificates file                  | None          |
 | `REDIS_CLUSTER_MODE` | Enable Redis Cluster mode                                 | `False`       |
 
 
