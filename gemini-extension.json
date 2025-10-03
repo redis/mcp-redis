@@ -1,0 +1,15 @@
+{
+  "name": "mcp-redis",
+  "version": "0.1.0",
+  "mcpServers": {
+    "redis": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "redis-mcp-server@latest",
+        "redis-mcp-server",
+        "--url", "${REDIS_URL}"
+      ]
+    }
+  }
+}
