@@ -47,6 +47,7 @@
         uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
+          enable-cache: false
   
       - name: ⚙️ Set up Python
         run: uv python install 3.12
@@ -69,6 +70,7 @@
         uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
+          enable-cache: false
   
       - name: ⚙️ Set Python up and add dependencies
         run: |
@@ -113,6 +115,7 @@
         uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
+          enable-cache: false
   
       - name: ⚙️ Set up Python ${{ matrix.python-version }}
         run: |
@@ -158,6 +161,7 @@
         uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
+          enable-cache: false
   
       - name: ⚙️ Set up Python
         run: uv python install 3.12

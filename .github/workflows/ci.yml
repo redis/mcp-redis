@@ -31,6 +31,7 @@ jobs:
       uses: astral-sh/setup-uv@v6
       with:
         version: "latest"
+        enable-cache: false
 
     - name: ⚙️ Set Python up and add dependencies
       run: |
@@ -60,6 +61,7 @@ jobs:
       uses: astral-sh/setup-uv@v6
       with:
         version: "latest"
+        enable-cache: false
 
     - name: ⚙️ Set Python up and add dependencies
       run: |
@@ -113,6 +115,7 @@ jobs:
       uses: astral-sh/setup-uv@v6
       with:
         version: "latest"
+        enable-cache: false
 
     - name: ⚙️ Set Python ${{ matrix.python-version }} up and add dependencies
       run: |
@@ -138,7 +141,7 @@ jobs:
       uses: codecov/codecov-action@v5
       if: matrix.python-version == '3.12'
       with:
-        file: ./coverage.xml
+        files: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
 
@@ -158,6 +161,7 @@ jobs:
       uses: astral-sh/setup-uv@v6
       with:
         version: "latest"
+        enable-cache: false
 
     - name: ⚙️ Set Python ${{ matrix.python-version }} up and add dependencies
       run: |
@@ -208,6 +212,7 @@ jobs:
       uses: astral-sh/setup-uv@v6
       with:
         version: "latest"
+        enable-cache: false
 
     - name: ⚙️ Set up Python
       run: uv python install 3.12
