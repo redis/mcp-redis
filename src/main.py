@@ -55,8 +55,8 @@ def cli(
 ):
     """Redis MCP Server - Model Context Protocol server for Redis."""
 
-    # Handle Redis URI if provided
-    if url:
+    # Handle Redis URI if provided (and not empty)
+    if url and url.strip():
         try:
             uri_config = parse_redis_uri(url)
             set_redis_config_from_cli(uri_config)
