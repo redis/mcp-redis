@@ -24,7 +24,7 @@ async def get_indexes() -> str:
 
 
 @mcp.tool()
-async def get_index_info(index_name: str) -> str:
+async def get_index_info(index_name: str) -> str | dict:
     """Retrieve schema and information about a specific Redis index using FT.INFO.
 
     Args:
@@ -41,7 +41,7 @@ async def get_index_info(index_name: str) -> str:
 
 
 @mcp.tool()
-async def get_indexed_keys_number(index_name: str) -> str:
+async def get_indexed_keys_number(index_name: str) -> int:
     """Retrieve the number of indexed keys by the index
 
     Args:

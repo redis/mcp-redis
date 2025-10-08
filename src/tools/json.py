@@ -1,7 +1,16 @@
+from typing import Union, Mapping, Optional, List, TYPE_CHECKING
 from src.common.connection import RedisConnectionManager
 from redis.exceptions import RedisError
 from src.common.server import mcp
-from redis.commands.json._util import JsonType
+# Define JsonType for type checking to match redis-py definition
+# Use object as runtime type to avoid issubclass() issues with Any in Python 3.10
+if TYPE_CHECKING:
+    JsonType = Union[
+        str, int, float, bool, None, Mapping[str, "JsonType"], List["JsonType"]
+    ]
+else:
+    # Use object at runtime to avoid MCP framework issubclass() issues
+    JsonType = object
 
 
 @mcp.tool()
@@ -31,7 +40,7 @@ async def json_set(name: str, path: str, value: JsonType, expire_seconds: int = 
 
 
 @mcp.tool()
-async def json_get(name: str, path: str = '$') -> str:
+async def json_get(name: str, path: str = '$') -> str | Optional[List[JsonType]]:
     """Retrieve a JSON value from Redis at a given path.
 
     Args:

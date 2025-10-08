@@ -64,7 +64,7 @@ Additional tools.
 
 ## Installation
 
-The Redis MCP Server supports the `stdio` [transport](https://modelcontextprotocol.io/docs/concepts/transports#standard-input%2Foutput-stdio). Support to the `stremable-http` transport will be added in the future.
+The Redis MCP Server supports both `stdio` and `streamable-http` [transports](https://modelcontextprotocol.io/docs/concepts/transports).
 
 > No PyPi package is available at the moment.
 
@@ -89,8 +89,24 @@ uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server --url "re
 # Run with individual parameters
 uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server --host localhost --port 6379 --password mypassword
 
+# Run with streamable HTTP transport (default on http://127.0.0.1:8000/mcp)
+uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server --transport streamable-http --url redis://localhost:6379/0
+
+# Run with streamable HTTP on custom host/port
+uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server --transport streamable-http --http-host 0.0.0.0 --http-port 8080 --url redis://localhost:6379/0
+
 # See all options
 uvx --from git+https://github.com/redis/mcp-redis.git redis-mcp-server --help
+```
+
+### Running with Streamable HTTP
+
+```sh
+# Development mode with streamable HTTP
+uv run redis-mcp-server --transport streamable-http --url redis://localhost:6379/0
+
+# Production mode with custom host and port
+uv run redis-mcp-server --transport streamable-http --http-host 0.0.0.0 --http-port 8000 --url redis://localhost:6379/0
 ```
 
 ### Development Installation
@@ -109,6 +125,12 @@ uv sync
 
 # Run with CLI interface
 uv run redis-mcp-server --help
+
+# Run with stdio transport (default)
+uv run src/main.py
+
+# Run with streamable HTTP transport
+uv run src/main.py --transport streamable-http --http-host 127.0.0.1 --http-port 8000
 
 # Or run the main file directly (uses environment variables)
 uv run src/main.py
@@ -365,7 +387,7 @@ The procedure will create the proper configuration in the `claude_desktop_config
 
 ### VS Code with GitHub Copilot
 
-To use the Redis MCP Server with VS Code, you must nable the [agent mode](https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode) tools. Add the following to your `settings.json`:
+To use the Redis MCP Server with VS Code, you must enable the [agent mode](https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode) tools. Add the following to your `settings.json`:
 
 ```json
 {

@@ -134,8 +134,18 @@ async def scan_keys(pattern: str = "*", count: int = 100, cursor: int = 0) -> di
         r = RedisConnectionManager.get_connection()
         cursor, keys = r.scan(cursor=cursor, match=pattern, count=count)
         
-        # Convert bytes to strings if needed
-        decoded_keys = [key.decode('utf-8') if isinstance(key, bytes) else key for key in keys]
+        # Convert bytes to strings if needed - safer decoding
+        decoded_keys = []
+        for key in keys:
+            if isinstance(key, bytes):
+                try:
+                    decoded_keys.append(key.decode('utf-8'))
+                except UnicodeDecodeError:
+                    decoded_keys.append(key.decode('utf-8', errors='replace'))
+            elif isinstance(key, str):
+                decoded_keys.append(key)
+            else:
+                decoded_keys.append(str(key))
         
         return {
             'cursor': cursor,
@@ -171,11 +181,28 @@ async def scan_all_keys(pattern: str = "*", batch_size: int = 100) -> list:
         cursor = 0
         
         while True:
-            cursor, keys = r.scan(cursor=cursor, match=pattern, count=batch_size)
+            scan_result = r.scan(cursor=cursor, match=pattern, count=batch_size)
+            
+            # Handle different return formats
+            if isinstance(scan_result, tuple) and len(scan_result) == 2:
+                cursor, keys = scan_result
+            else:
+                break
             
             # Convert bytes to strings if needed and add to results
-            decoded_keys = [key.decode('utf-8') if isinstance(key, bytes) else key for key in keys]
-            all_keys.extend(decoded_keys)
+            if keys:
+                decoded_keys = []
+                for key in keys:
+                    if isinstance(key, bytes):
+                        try:
+                            decoded_keys.append(key.decode('utf-8'))
+                        except UnicodeDecodeError:
+                            decoded_keys.append(key.decode('utf-8', errors='replace'))
+                    elif isinstance(key, str):
+                        decoded_keys.append(key)
+                    else:
+                        decoded_keys.append(str(key))
+                all_keys.extend(decoded_keys)
             
             # Break when scan is complete (cursor returns to 0)
             if cursor == 0:
@@ -183,4 +210,6 @@ async def scan_all_keys(pattern: str = "*", batch_size: int = 100) -> list:
         
         return all_keys
     except RedisError as e:
+        return f"Error scanning all keys with pattern '{pattern}': {str(e)}"
+    except Exception as e:
         return f"Error scanning all keys with pattern '{pattern}': {str(e)}"
