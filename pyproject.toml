@@ -1,6 +1,6 @@
 [project]
 name = "redis-mcp-server"
-version = "0.3.1"
+version = "0.3.3"
 description = "Redis MCP Server - Model Context Protocol server for Redis"
 readme = "README.md"
 requires-python = ">=3.10"
