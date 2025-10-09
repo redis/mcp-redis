@@ -82,3 +82,27 @@ async def llen(name: str) -> int:
         return r.llen(name)
     except RedisError as e:
         return f"Error retrieving length of list '{name}': {str(e)}"
+
+@mcp.tool()
+async def lrem(name: str, count: int, element: FieldT) -> str:
+    """Remove elements from a Redis list.
+    
+    Args:
+        name: The name of the list
+        count: Number of elements to remove (0 = all, positive = from head, negative = from tail)
+        element: The element value to remove
+        
+    Returns:
+        A string indicating the number of elements removed.
+    """
+    try:
+        r = RedisConnectionManager.get_connection()
+        removed_count = r.lrem(name, count, element)
+        
+        if removed_count == 0:
+            return f"Element '{element}' not found in list '{name}' or list does not exist."
+        else:
+            return f"Removed {removed_count} occurrence(s) of '{element}' from list '{name}'."
+            
+    except RedisError as e:
+        return f"Error removing element from list '{name}': {str(e)}"
