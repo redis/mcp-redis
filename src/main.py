@@ -56,7 +56,9 @@ def cli(
     """Redis MCP Server - Model Context Protocol server for Redis."""
 
     # Handle Redis URI if provided (and not empty)
-    if url and url.strip():
+    # Note: gemini-cli passes the raw "${REDIS_URL}" string when the env var is not set
+
+    if url and url.strip() and url.strip() != "${REDIS_URL}":
         try:
             uri_config = parse_redis_uri(url)
             set_redis_config_from_cli(uri_config)
