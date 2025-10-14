@@ -12,15 +12,17 @@ async def build_agent():
         params={
             "command": "uv",
             "args": [
-                "--directory", "../src/", # change with the path to the MCP server
-                "run", "main.py"
+                "--directory",
+                "../src/",  # change with the path to the MCP server
+                "run",
+                "main.py",
             ],
-        "env": {
-            "REDIS_HOST": "127.0.0.1",
-            "REDIS_PORT": "6379",
-            "REDIS_USERNAME": "default",
-            "REDIS_PWD": ""
-        },
+            "env": {
+                "REDIS_HOST": "127.0.0.1",
+                "REDIS_PORT": "6379",
+                "REDIS_USERNAME": "default",
+                "REDIS_PWD": "",
+            },
         }
     )
 
@@ -30,7 +32,7 @@ async def build_agent():
     agent = Agent(
         name="Redis Assistant",
         instructions="You are a helpful assistant capable of reading and writing to Redis. Store every question and answer in the Redis Stream app:logger",
-        mcp_servers=[server]
+        mcp_servers=[server],
     )
 
     return agent
@@ -46,7 +48,7 @@ async def cli(agent, max_history=30):
         if q.strip().lower() in {"exit", "quit"}:
             break
 
-        if (len(q.strip()) > 0):
+        if len(q.strip()) > 0:
             # Format the context into a single string
             history = ""
             for turn in conversation_history:
@@ -58,7 +60,9 @@ async def cli(agent, max_history=30):
 
             response_text = ""
             async for event in result.stream_events():
-                if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
+                if event.type == "raw_response_event" and isinstance(
+                    event.data, ResponseTextDeltaEvent
+                ):
                     print(event.data.delta, end="", flush=True)
                     response_text += event.data.delta
             print("\n")

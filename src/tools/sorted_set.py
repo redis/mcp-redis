@@ -1,3 +1,5 @@
+from typing import Optional
+
 from redis.exceptions import RedisError
 
 from src.common.connection import RedisConnectionManager
@@ -5,7 +7,9 @@ from src.common.server import mcp
 
 
 @mcp.tool()
-async def zadd(key: str, score: float, member: str, expiration: int = None) -> str:
+async def zadd(
+    key: str, score: float, member: str, expiration: Optional[int] = None
+) -> str:
     """Add a member to a Redis sorted set with an optional expiration time.
 
     Args:

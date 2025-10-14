@@ -44,9 +44,10 @@
           fetch-depth: 0  # Full history for UV build
   
       - name: ⚙️ Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
+          enable-cache: false
   
       - name: ⚙️ Set up Python
         run: uv python install 3.12
@@ -66,9 +67,10 @@
           fetch-depth: 0
   
       - name: ⚙️ Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
+          enable-cache: false
   
       - name: ⚙️ Set Python up and add dependencies
         run: |
@@ -110,9 +112,10 @@
           fetch-depth: 0
   
       - name: ⚙️ Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
+          enable-cache: false
   
       - name: ⚙️ Set up Python ${{ matrix.python-version }}
         run: |
@@ -155,9 +158,10 @@
           fetch-depth: 0  # Full history for UV build
   
       - name: ⚙️ Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
+          enable-cache: false
   
       - name: ⚙️ Set up Python
         run: uv python install 3.12
@@ -211,7 +215,7 @@
           uv run twine check dist/*
   
       - name: ⚙️ Generate build attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: 'dist/*'
   
