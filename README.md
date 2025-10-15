@@ -477,7 +477,7 @@ You can start the GitHub desired version of the Redis MCP server using `uvx` by 
 
 ```json
 "servers": {
-  "Redis MCP Server": {
+  "redis": {
     "type": "stdio",
     "command": "uvx", 
     "args": [
@@ -492,6 +492,7 @@ You can start the GitHub desired version of the Redis MCP server using `uvx` by 
 Alternatively, you can start the server using `uv` and configure your `mcp.json`. This is usually desired for development.
 
 ```json
+// mcp.json
 {
   "servers": {
     "redis": {
@@ -515,6 +516,8 @@ Alternatively, you can start the server using `uv` and configure your `mcp.json`
 ```
 
 For more information, see the [VS Code documentation](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
+
+> **Tip:** You can prompt Copilot chat to use the Redis MCP tools by including `#redis` in your message.
 
 > **Note:** Starting with [VS Code v1.102](https://code.visualstudio.com/updates/v1_102),  
 > MCP servers are now stored in a dedicated `mcp.json` file instead of `settings.json`. 
