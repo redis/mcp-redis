@@ -3,7 +3,6 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/redis-mcp-server)](https://pypi.org/project/redis-mcp-server/)
 [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue&logo=redis)](https://www.python.org/downloads/)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE.txt)
-[![smithery badge](https://smithery.ai/badge/@redis/mcp-redis)](https://smithery.ai/server/@redis/mcp-redis)
 [![Verified on MseeP](https://mseep.ai/badge.svg)](https://mseep.ai/app/70102150-efe0-4705-9f7d-87980109a279)
 [![Docker Image Version](https://img.shields.io/docker/v/mcp/redis?sort=semver&logo=docker&label=Docker)](https://hub.docker.com/r/mcp/redis)
 [![codecov](https://codecov.io/gh/redis/mcp-redis/branch/master/graph/badge.svg?token=yenl5fzxxr)](https://codecov.io/gh/redis/mcp-redis)
@@ -102,7 +101,41 @@ The `uvx` command will download the server on the fly (if not cached already), c
 }
 ```
 
-You will find examples for different platforms along the README.
+#### URL specification
+
+The format to specify the `--url` argument follows the [redis](https://www.iana.org/assignments/uri-schemes/prov/redis) and [rediss](https://www.iana.org/assignments/uri-schemes/prov/rediss) schemes:
+
+```commandline
+redis://user:secret@localhost:6379/0?foo=bar&qux=baz
+```
+
+As an example, you can easily connect to a localhost server with:
+
+```commandline
+redis://localhost:6379/0
+```
+
+Where `0` is the [logical database](https://redis.io/docs/latest/commands/select/) you'd like to connect to.
+
+For an encrypted connection to the database (e.g., connecting to a [Redis Cloud](https://redis.io/cloud/) database), you'd use the `rediss` scheme.
+
+```commandline
+rediss://user:secret@localhost:6379/0?foo=bar&qux=baz
+```
+
+To verify the server's identity, specify `ssl_ca_certs`.
+
+```commandline
+rediss://user:secret@hostname:port?ssl_cert_reqs=required&ssl_ca_certs=path_to_the_certificate
+```
+
+For an unverified connection, set `ssl_cert_reqs` to `none`
+
+```commandline
+rediss://user:secret@hostname:port?ssl_cert_reqs=none
+```
+
+Configure your connection using the available options in the section "Available CLI Options".
 
 ### Testing the PyPI package
 
@@ -454,14 +487,6 @@ The simplest way to configure MCP clients is using `uvx`. Add the following JSON
 }
 ```
 
-If you'd like to test the [Redis MCP Server](https://smithery.ai/server/@redis/mcp-redis) via Smithery, you can configure Claude Desktop automatically:
-
-```bash
-npx -y @smithery/cli install @redis/mcp-redis --client claude
-```
-
-Follow the prompt and provide the details to configure the server and connect to Redis (e.g. using a Redis Cloud database).
-The procedure will create the proper configuration in the `claude_desktop_config.json` configuration file.
 
 ### VS Code with GitHub Copilot
 
