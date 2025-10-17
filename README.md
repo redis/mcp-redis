@@ -487,14 +487,6 @@ The simplest way to configure MCP clients is using `uvx`. Add the following JSON
 }
 ```
 
-If you'd like to test the [Redis MCP Server](https://smithery.ai/server/@redis/mcp-redis) via Smithery, you can configure Claude Desktop automatically:
-
-```bash
-npx -y @smithery/cli install @redis/mcp-redis --client claude
-```
-
-Follow the prompt and provide the details to configure the server and connect to Redis (e.g. using a Redis Cloud database).
-The procedure will create the proper configuration in the `claude_desktop_config.json` configuration file.
 
 ### VS Code with GitHub Copilot
 
