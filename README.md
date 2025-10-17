@@ -1,7 +1,7 @@
 # Redis MCP Server
 [![Integration](https://github.com/redis/mcp-redis/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/redis/mcp-redis/actions/workflows/ci.yml)
 [![PyPI - Version](https://img.shields.io/pypi/v/redis-mcp-server)](https://pypi.org/project/redis-mcp-server/)
-[![Python Version](https://img.shields.io/badge/python-3.13%2B-blue&logo=redis)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.14%2B-blue&logo=redis)](https://www.python.org/downloads/)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE.txt)
 [![Verified on MseeP](https://mseep.ai/badge.svg)](https://mseep.ai/app/70102150-efe0-4705-9f7d-87980109a279)
 [![Docker Image Version](https://img.shields.io/docker/v/mcp/redis?sort=semver&logo=docker&label=Docker)](https://hub.docker.com/r/mcp/redis)
@@ -148,7 +148,7 @@ pip install redis-mcp-server
 And start it using `uv` the package in your environment.
 
 ```sh
-uv python install 3.13
+uv python install 3.14
 uv sync
 uv run redis-mcp-server --url redis://localhost:6379/0
 ```
@@ -439,7 +439,7 @@ export OPENAI_API_KEY="<openai_token>"
 And run the [application](./examples/redis_assistant.py).
 
 ```commandline
-python3.13 redis_assistant.py
+python3.14 redis_assistant.py
 ```
 
 You can troubleshoot your agent workflows using the [OpenAI dashboard](https://platform.openai.com/traces/).
