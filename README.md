@@ -504,7 +504,7 @@ You can start the GitHub desired version of the Redis MCP server using `uvx` by 
 "servers": {
   "redis": {
     "type": "stdio",
-    "command": "uvx", 
+    "command": "uvx",
     "args": [
       "--from", "redis-mcp-server@latest",
       "redis-mcp-server",
@@ -513,6 +513,27 @@ You can start the GitHub desired version of the Redis MCP server using `uvx` by 
   },
 }
 ```
+
+#### Suppressing uvx Installation Messages
+
+If you want to suppress uvx installation messages that may appear as warnings in MCP client logs, use the `-qq` flag:
+
+```json
+"servers": {
+  "redis": {
+    "type": "stdio",
+    "command": "uvx",
+    "args": [
+      "-qq",
+      "--from", "redis-mcp-server@latest",
+      "redis-mcp-server",
+      "--url", "redis://localhost:6379/0"
+    ]
+  },
+}
+```
+
+The `-qq` flag enables silent mode, which suppresses "Installed X packages" messages that uvx writes to stderr during package installation.
 
 Alternatively, you can start the server using `uv` and configure your `mcp.json`. This is usually desired for development.
 
