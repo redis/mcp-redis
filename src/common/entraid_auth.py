@@ -16,7 +16,9 @@ from src.common.config import (
 _logger = logging.getLogger(__name__)
 
 # Reduce Azure SDK logging verbosity
-logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
+    logging.WARNING
+)
 logging.getLogger("azure.identity").setLevel(logging.WARNING)
 logging.getLogger("redis.auth.token_manager").setLevel(logging.WARNING)
 
