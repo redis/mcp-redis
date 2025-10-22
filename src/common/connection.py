@@ -5,7 +5,11 @@ import redis
 from redis import Redis
 from redis.cluster import RedisCluster
 
-from src.common.config import REDIS_CFG
+from src.common.config import REDIS_CFG, is_entraid_auth_enabled
+from src.common.entraid_auth import (
+    create_credential_provider,
+    EntraIDAuthenticationError,
+)
 from src.version import __version__
 
 _logger = logging.getLogger(__name__)
@@ -18,6 +22,17 @@ class RedisConnectionManager:
     def get_connection(cls, decode_responses=True) -> Redis:
         if cls._instance is None:
             try:
+                # Create Entra ID credential provider if configured
+                credential_provider = None
+                if is_entraid_auth_enabled():
+                    try:
+                        credential_provider = create_credential_provider()
+                    except EntraIDAuthenticationError as e:
+                        _logger.error(
+                            "Failed to create Entra ID credential provider: %s", e
+                        )
+                        raise
+
                 if REDIS_CFG["cluster_mode"]:
                     redis_class: Type[Union[Redis, RedisCluster]] = (
                         redis.cluster.RedisCluster
@@ -37,6 +52,12 @@ class RedisConnectionManager:
                         "lib_name": f"redis-py(mcp-server_v{__version__})",
                         "max_connections_per_node": 10,
                     }
+
+                    # Add credential provider if available
+                    if credential_provider:
+                        connection_params["credential_provider"] = credential_provider
+                        # Note: Azure Redis Enterprise with EntraID uses plain text connections
+                        # SSL setting is controlled by REDIS_SSL environment variable
                 else:
                     redis_class: Type[Union[Redis, RedisCluster]] = redis.Redis
                     connection_params = {
@@ -55,6 +76,12 @@ class RedisConnectionManager:
                         "lib_name": f"redis-py(mcp-server_v{__version__})",
                         "max_connections": 10,
                     }
+
+                    # Add credential provider if available
+                    if credential_provider:
+                        connection_params["credential_provider"] = credential_provider
+                        # Note: Azure Redis Enterprise with EntraID uses plain text connections
+                        # SSL setting is controlled by REDIS_SSL environment variable
 
                 cls._instance = redis_class(**connection_params)
 
