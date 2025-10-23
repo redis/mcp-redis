@@ -1,6 +1,7 @@
 {
-  "name": "mcp-redis",
+  "name": "redis",
   "version": "0.1.0",
+  "description": "Manage and search data in Redis efficiently within Gemini CLI.",
   "mcpServers": {
     "redis": {
       "command": "uvx",
