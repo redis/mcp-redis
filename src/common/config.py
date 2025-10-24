@@ -5,6 +5,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Default values for Entra ID authentication
+DEFAULT_TOKEN_EXPIRATION_REFRESH_RATIO = 0.9
+DEFAULT_LOWER_REFRESH_BOUND_MILLIS = 30000  # 30 seconds
+DEFAULT_TOKEN_REQUEST_EXECUTION_TIMEOUT_MS = 10000  # 10 seconds
+DEFAULT_RETRY_MAX_ATTEMPTS = 3
+DEFAULT_RETRY_DELAY_MS = 100
+
 REDIS_CFG = {
     "host": os.getenv("REDIS_HOST", "127.0.0.1"),
     "port": int(os.getenv("REDIS_PORT", 6379)),
@@ -18,6 +25,55 @@ REDIS_CFG = {
     "ssl_ca_certs": os.getenv("REDIS_SSL_CA_CERTS", None),
     "cluster_mode": os.getenv("REDIS_CLUSTER_MODE", False) in ("true", "1", "t"),
     "db": int(os.getenv("REDIS_DB", 0)),
+}
+
+# Entra ID Authentication Configuration
+ENTRAID_CFG = {
+    # Authentication flow selection
+    "auth_flow": os.getenv(
+        "REDIS_ENTRAID_AUTH_FLOW", None
+    ),  # service_principal, managed_identity, default_credential
+    # Service Principal Authentication
+    "client_id": os.getenv("REDIS_ENTRAID_CLIENT_ID", None),
+    "client_secret": os.getenv("REDIS_ENTRAID_CLIENT_SECRET", None),
+    "tenant_id": os.getenv("REDIS_ENTRAID_TENANT_ID", None),
+    # Managed Identity Authentication
+    "identity_type": os.getenv(
+        "REDIS_ENTRAID_IDENTITY_TYPE", "system_assigned"
+    ),  # system_assigned, user_assigned
+    "user_assigned_identity_client_id": os.getenv(
+        "REDIS_ENTRAID_USER_ASSIGNED_CLIENT_ID", None
+    ),
+    # Default Azure Credential Authentication
+    "scopes": os.getenv("REDIS_ENTRAID_SCOPES", "https://redis.azure.com/.default"),
+    # Token lifecycle configuration
+    "token_expiration_refresh_ratio": float(
+        os.getenv(
+            "REDIS_ENTRAID_TOKEN_EXPIRATION_REFRESH_RATIO",
+            DEFAULT_TOKEN_EXPIRATION_REFRESH_RATIO,
+        )
+    ),
+    "lower_refresh_bound_millis": int(
+        os.getenv(
+            "REDIS_ENTRAID_LOWER_REFRESH_BOUND_MILLIS",
+            DEFAULT_LOWER_REFRESH_BOUND_MILLIS,
+        )
+    ),
+    "token_request_execution_timeout_ms": int(
+        os.getenv(
+            "REDIS_ENTRAID_TOKEN_REQUEST_EXECUTION_TIMEOUT_MS",
+            DEFAULT_TOKEN_REQUEST_EXECUTION_TIMEOUT_MS,
+        )
+    ),
+    # Retry configuration
+    "retry_max_attempts": int(
+        os.getenv("REDIS_ENTRAID_RETRY_MAX_ATTEMPTS", DEFAULT_RETRY_MAX_ATTEMPTS)
+    ),
+    "retry_delay_ms": int(
+        os.getenv("REDIS_ENTRAID_RETRY_DELAY_MS", DEFAULT_RETRY_DELAY_MS)
+    ),
+    # Resource configuration
+    "resource": os.getenv("REDIS_ENTRAID_RESOURCE", "https://redis.azure.com/"),
 }
 
 
@@ -99,3 +155,77 @@ def set_redis_config_from_cli(config: dict):
         else:
             # Convert other values to strings
             REDIS_CFG[key] = str(value) if value is not None else None
+
+
+def set_entraid_config_from_cli(config: dict):
+    """Update Entra ID configuration from CLI parameters."""
+    for key, value in config.items():
+        if value is not None:
+            if key in ["token_expiration_refresh_ratio"]:
+                # Keep float values as floats
+                ENTRAID_CFG[key] = float(value)
+            elif key in [
+                "lower_refresh_bound_millis",
+                "token_request_execution_timeout_ms",
+                "retry_max_attempts",
+                "retry_delay_ms",
+            ]:
+                # Keep integer values as integers
+                ENTRAID_CFG[key] = int(value)
+            else:
+                # Convert other values to strings
+                ENTRAID_CFG[key] = str(value)
+
+
+def is_entraid_auth_enabled() -> bool:
+    """Check if Entra ID authentication is enabled."""
+    return ENTRAID_CFG["auth_flow"] is not None
+
+
+def get_entraid_auth_flow() -> str:
+    """Get the configured Entra ID authentication flow."""
+    return ENTRAID_CFG["auth_flow"]
+
+
+def validate_entraid_config() -> tuple[bool, str]:
+    """Validate Entra ID configuration based on the selected auth flow.
+
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    auth_flow = ENTRAID_CFG["auth_flow"]
+
+    if not auth_flow:
+        return True, ""  # No Entra ID auth configured, which is valid
+
+    if auth_flow == "service_principal":
+        required_fields = ["client_id", "client_secret", "tenant_id"]
+        missing_fields = [field for field in required_fields if not ENTRAID_CFG[field]]
+        if missing_fields:
+            return (
+                False,
+                f"Service principal authentication requires: {', '.join(missing_fields)}",
+            )
+
+    elif auth_flow == "managed_identity":
+        identity_type = ENTRAID_CFG["identity_type"]
+        if (
+            identity_type == "user_assigned"
+            and not ENTRAID_CFG["user_assigned_identity_client_id"]
+        ):
+            return (
+                False,
+                "User-assigned managed identity requires user_assigned_identity_client_id",
+            )
+
+    elif auth_flow == "default_credential":
+        # Default credential doesn't require specific configuration
+        pass
+
+    else:
+        return (
+            False,
+            f"Invalid auth_flow: {auth_flow}. Must be one of: service_principal, managed_identity, default_credential",
+        )
+
+    return True, ""

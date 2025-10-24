@@ -36,6 +36,7 @@ The Redis MCP Server is a **natural language interface** designed for agentic ap
   - [Redis ACL](#redis-acl)
   - [Configuration via command line arguments](#configuration-via-command-line-arguments)
   - [Configuration via Environment Variables](#configuration-via-environment-variables)
+  - [EntraID Authentication for Azure Managed Redis](#entraid-authentication-for-azure-managed-redis)
   - [Logging](#logging)
 - [Integrations](#integrations)
   - [OpenAI Agents SDK](#openai-agents-sdk)
@@ -56,6 +57,7 @@ The Redis MCP Server is a **natural language interface** designed for agentic ap
 - **Full Redis Support**: Handles **hashes, lists, sets, sorted sets, streams**, and more.
 - **Search & Filtering**: Supports efficient data retrieval and searching in Redis.
 - **Scalable & Lightweight**: Designed for **high-performance** data operations.
+- **EntraID Authentication**: Native support for Azure Active Directory authentication with Azure Managed Redis.
 - The Redis MCP Server supports the `stdio` [transport](https://modelcontextprotocol.io/docs/concepts/transports#standard-input%2Foutput-stdio). Support to the `stremable-http` transport will be added in the future.
 
 ## Tools
@@ -349,6 +351,85 @@ If desired, you can use environment variables. Defaults are provided for all var
 | `REDIS_SSL_CA_CERTS` | Path to the trusted CA certificates file                  | None          |
 | `REDIS_CLUSTER_MODE` | Enable Redis Cluster mode                                 | `False`       |
 
+### EntraID Authentication for Azure Managed Redis
+
+The Redis MCP Server supports **EntraID (Azure Active Directory) authentication** for Azure Managed Redis, enabling OAuth-based authentication with automatic token management.
+
+#### Authentication Providers
+
+**Service Principal Authentication** - Application-based authentication using client credentials:
+```bash
+export REDIS_ENTRAID_AUTH_FLOW=service_principal
+export REDIS_ENTRAID_CLIENT_ID=your-client-id
+export REDIS_ENTRAID_CLIENT_SECRET=your-client-secret
+export REDIS_ENTRAID_TENANT_ID=your-tenant-id
+```
+
+**Managed Identity Authentication** - For Azure-hosted applications:
+```bash
+# System-assigned managed identity
+export REDIS_ENTRAID_AUTH_FLOW=managed_identity
+export REDIS_ENTRAID_IDENTITY_TYPE=system_assigned
+
+# User-assigned managed identity
+export REDIS_ENTRAID_AUTH_FLOW=managed_identity
+export REDIS_ENTRAID_IDENTITY_TYPE=user_assigned
+export REDIS_ENTRAID_USER_ASSIGNED_CLIENT_ID=your-identity-client-id
+```
+
+**Default Azure Credential** - Automatic credential discovery (recommended for development):
+```bash
+export REDIS_ENTRAID_AUTH_FLOW=default_credential
+export REDIS_ENTRAID_SCOPES=https://redis.azure.com/.default
+```
+
+#### EntraID Configuration Variables
+
+| Name                                    | Description                                               | Default Value                        |
+|-----------------------------------------|-----------------------------------------------------------|--------------------------------------|
+| `REDIS_ENTRAID_AUTH_FLOW`               | Authentication flow type                                  | None (EntraID disabled)              |
+| `REDIS_ENTRAID_CLIENT_ID`               | Service Principal client ID                               | None                                 |
+| `REDIS_ENTRAID_CLIENT_SECRET`           | Service Principal client secret                           | None                                 |
+| `REDIS_ENTRAID_TENANT_ID`               | Azure tenant ID                                           | None                                 |
+| `REDIS_ENTRAID_IDENTITY_TYPE`           | Managed identity type                                     | `"system_assigned"`                  |
+| `REDIS_ENTRAID_USER_ASSIGNED_CLIENT_ID` | User-assigned managed identity client ID                  | None                                 |
+| `REDIS_ENTRAID_SCOPES`                  | OAuth scopes for Default Azure Credential                | `"https://redis.azure.com/.default"` |
+| `REDIS_ENTRAID_RESOURCE`                | Azure Redis resource identifier                          | `"https://redis.azure.com/"`         |
+
+#### Key Features
+
+- **Automatic token renewal** - Background token refresh with no manual intervention
+- **Graceful fallback** - Falls back to standard Redis authentication when EntraID not configured
+- **Multiple auth flows** - Supports Service Principal, Managed Identity, and Default Azure Credential
+- **Enterprise ready** - Designed for Azure Managed Redis with centralized identity management
+
+#### Example Configuration
+
+For **local development** with Azure CLI:
+```bash
+# Login with Azure CLI
+az login
+
+# Configure MCP server
+export REDIS_ENTRAID_AUTH_FLOW=default_credential
+export REDIS_URL=redis://your-azure-redis.redis.cache.windows.net:6379
+```
+
+For **production** with Service Principal:
+```bash
+export REDIS_ENTRAID_AUTH_FLOW=service_principal
+export REDIS_ENTRAID_CLIENT_ID=your-app-client-id
+export REDIS_ENTRAID_CLIENT_SECRET=your-app-secret
+export REDIS_ENTRAID_TENANT_ID=your-tenant-id
+export REDIS_URL=redis://your-azure-redis.redis.cache.windows.net:6379
+```
+
+For **Azure-hosted applications** with Managed Identity:
+```bash
+export REDIS_ENTRAID_AUTH_FLOW=managed_identity
+export REDIS_ENTRAID_IDENTITY_TYPE=system_assigned
+export REDIS_URL=redis://your-azure-redis.redis.cache.windows.net:6379
+```
 
 There are several ways to set environment variables:
 
@@ -471,6 +552,7 @@ You can also configure the Redis MCP Server in Augment manually by importing the
 
 The simplest way to configure MCP clients is using `uvx`. Add the following JSON to your `claude_desktop_config.json`, remember to provide the full path to `uvx`.
 
+**Basic Redis connection:**
 ```json
 {
   "mcpServers": {
@@ -487,6 +569,26 @@ The simplest way to configure MCP clients is using `uvx`. Add the following JSON
 }
 ```
 
+**Azure Managed Redis with EntraID authentication:**
+```json
+{
+  "mcpServers": {
+    "redis-mcp-server": {
+        "type": "stdio",
+        "command": "/Users/mortensi/.local/bin/uvx",
+        "args": [
+            "--from", "redis-mcp-server@latest",
+            "redis-mcp-server",
+            "--url", "redis://your-azure-redis.redis.cache.windows.net:6379"
+        ],
+        "env": {
+            "REDIS_ENTRAID_AUTH_FLOW": "default_credential",
+            "REDIS_ENTRAID_SCOPES": "https://redis.azure.com/.default"
+        }
+    }
+  }
+}
+```
 
 ### VS Code with GitHub Copilot
 
