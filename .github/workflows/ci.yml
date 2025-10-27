@@ -75,7 +75,7 @@ jobs:
         uv run bandit -r src/
 
     - name: ⚙️ Upload security reports
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: always()
       with:
         name: security-reports
@@ -234,7 +234,7 @@ jobs:
         redis-mcp-server --help
 
     - name: ⚙️ Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: dist-files
         path: dist/
