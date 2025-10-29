@@ -63,7 +63,9 @@ class TestCreateCredentialProvider:
 
     @patch("src.common.entraid_auth._create_service_principal_provider")
     @patch("src.common.entraid_auth._create_token_manager_config")
-    @patch.dict("src.common.entraid_auth.ENTRAID_CFG", {"auth_flow": "service_principal"})
+    @patch.dict(
+        "src.common.entraid_auth.ENTRAID_CFG", {"auth_flow": "service_principal"}
+    )
     @patch("src.common.entraid_auth.validate_entraid_config")
     @patch("src.common.entraid_auth.is_entraid_auth_enabled")
     def test_creates_service_principal_provider(
@@ -88,7 +90,9 @@ class TestCreateCredentialProvider:
 
     @patch("src.common.entraid_auth._create_managed_identity_provider")
     @patch("src.common.entraid_auth._create_token_manager_config")
-    @patch.dict("src.common.entraid_auth.ENTRAID_CFG", {"auth_flow": "managed_identity"})
+    @patch.dict(
+        "src.common.entraid_auth.ENTRAID_CFG", {"auth_flow": "managed_identity"}
+    )
     @patch("src.common.entraid_auth.validate_entraid_config")
     @patch("src.common.entraid_auth.is_entraid_auth_enabled")
     def test_creates_managed_identity_provider(
@@ -113,7 +117,9 @@ class TestCreateCredentialProvider:
 
     @patch("src.common.entraid_auth._create_default_credential_provider")
     @patch("src.common.entraid_auth._create_token_manager_config")
-    @patch.dict("src.common.entraid_auth.ENTRAID_CFG", {"auth_flow": "default_credential"})
+    @patch.dict(
+        "src.common.entraid_auth.ENTRAID_CFG", {"auth_flow": "default_credential"}
+    )
     @patch("src.common.entraid_auth.validate_entraid_config")
     @patch("src.common.entraid_auth.is_entraid_auth_enabled")
     def test_creates_default_credential_provider(
@@ -137,7 +143,9 @@ class TestCreateCredentialProvider:
         mock_create_dc_provider.assert_called_once_with(mock_token_config)
 
     @patch("src.common.entraid_auth._create_token_manager_config")
-    @patch.dict("src.common.entraid_auth.ENTRAID_CFG", {"auth_flow": "unsupported_flow"})
+    @patch.dict(
+        "src.common.entraid_auth.ENTRAID_CFG", {"auth_flow": "unsupported_flow"}
+    )
     @patch("src.common.entraid_auth.validate_entraid_config")
     @patch("src.common.entraid_auth.is_entraid_auth_enabled")
     def test_raises_error_on_unsupported_flow(
@@ -180,9 +188,7 @@ class TestCreateTokenManagerConfig:
         result = _create_token_manager_config()
 
         # Verify RetryPolicy was created with correct parameters
-        mock_retry_policy_class.assert_called_once_with(
-            max_attempts=3, delay_in_ms=100
-        )
+        mock_retry_policy_class.assert_called_once_with(max_attempts=3, delay_in_ms=100)
 
         # Verify TokenManagerConfig was created with correct parameters
         mock_token_config_class.assert_called_once_with(
@@ -200,9 +206,7 @@ class TestCreateServicePrincipalProvider:
 
     @patch("src.common.entraid_auth.create_from_service_principal")
     @patch("src.common.entraid_auth.ENTRAID_CFG")
-    def test_creates_service_principal_provider(
-        self, mock_entraid_cfg, mock_create_sp
-    ):
+    def test_creates_service_principal_provider(self, mock_entraid_cfg, mock_create_sp):
         """Test creating service principal provider."""
         mock_entraid_cfg.__getitem__.side_effect = lambda key: {
             "client_id": "test-client-id",
@@ -400,4 +404,3 @@ class TestEntraIDAuthenticationError:
     def test_exception_is_exception_subclass(self):
         """Test that EntraIDAuthenticationError is an Exception subclass."""
         assert issubclass(EntraIDAuthenticationError, Exception)
-
