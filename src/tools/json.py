@@ -1,43 +1,16 @@
 import json
 from typing import Optional
 from redis.exceptions import RedisError
-from pydantic_core import core_schema
 
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
-
-
-# Custom type that accepts any JSON value but generates a proper schema
-class JsonValue:
-    """Accepts any JSON-serializable value."""
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, _source_type, _handler):
-        """Define how Pydantic should validate this type."""
-        # Accept any value
-        return core_schema.any_schema()
-
-    @classmethod
-    def __get_pydantic_json_schema__(cls, _core_schema, _handler):
-        """Define the JSON schema for this type."""
-        # Return a schema that accepts string, number, boolean, object, array, or null
-        return {
-            "anyOf": [
-                {"type": "string"},
-                {"type": "number"},
-                {"type": "boolean"},
-                {"type": "object"},
-                {"type": "array", "items": {"type": "string"}},
-                {"type": "null"},
-            ]
-        }
 
 
 @mcp.tool()
 async def json_set(
     name: str,
     path: str,
-    value: JsonValue,
+    value: str,
     expire_seconds: Optional[int] = None,
 ) -> str:
     """Set a JSON value in Redis at a given path with an optional expiration time.
@@ -45,15 +18,21 @@ async def json_set(
     Args:
         name: The Redis key where the JSON document is stored.
         path: The JSON path where the value should be set.
-        value: The JSON value to store.
+        value: The JSON value to store (as JSON string, or will be auto-converted).
         expire_seconds: Optional; time in seconds after which the key should expire.
 
     Returns:
         A success message or an error message.
     """
+    # Try to parse the value as JSON, if it fails, treat it as a plain string
+    try:
+        parsed_value = json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        parsed_value = value
+
     try:
         r = RedisConnectionManager.get_connection()
-        r.json().set(name, path, value)
+        r.json().set(name, path, parsed_value)
 
         if expire_seconds is not None:
             r.expire(name, expire_seconds)
