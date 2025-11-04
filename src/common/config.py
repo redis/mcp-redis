@@ -27,6 +27,11 @@ REDIS_CFG = {
     "db": int(os.getenv("REDIS_DB", 0)),
 }
 
+# When ssl_cert_reqs is "none", we should disable hostname checking by default
+# This matches the behavior of redis-cli --insecure flag
+default_check_hostname = "false" if REDIS_CFG["ssl_cert_reqs"] == "none" else "true"
+REDIS_CFG["ssl_check_hostname"] = os.getenv("REDIS_SSL_CHECK_HOSTNAME", default_check_hostname) in ("true", "1", "t")
+
 # Entra ID Authentication Configuration
 ENTRAID_CFG = {
     # Authentication flow selection
@@ -125,6 +130,8 @@ def parse_redis_uri(uri: str) -> dict:
             config["ssl_keyfile"] = query_params["ssl_keyfile"][0]
         if "ssl_certfile" in query_params:
             config["ssl_certfile"] = query_params["ssl_certfile"][0]
+        if "ssl_check_hostname" in query_params:
+            config["ssl_check_hostname"] = query_params["ssl_check_hostname"][0] in ("true", "1", "t")
 
         # Handle other parameters. According to https://www.iana.org/assignments/uri-schemes/prov/redis,
         # The database number to use for the Redis SELECT command comes from

@@ -336,20 +336,21 @@ uvx --from redis-mcp-server@latest redis-mcp-server --help
 
 If desired, you can use environment variables. Defaults are provided for all variables.
 
-| Name                 | Description                                               | Default Value |
-|----------------------|-----------------------------------------------------------|---------------|
-| `REDIS_HOST`         | Redis IP or hostname                                      | `"127.0.0.1"` |
-| `REDIS_PORT`         | Redis port                                                | `6379`        |
-| `REDIS_DB`           | Database                                                  | 0             |
-| `REDIS_USERNAME`     | Default database username                                 | `"default"`   |
-| `REDIS_PWD`          | Default database password                                 | ""            |
-| `REDIS_SSL`          | Enables or disables SSL/TLS                               | `False`       |
-| `REDIS_SSL_CA_PATH`  | CA certificate for verifying server                       | None          |
-| `REDIS_SSL_KEYFILE`  | Client's private key file for client authentication       | None          |
-| `REDIS_SSL_CERTFILE` | Client's certificate file for client authentication       | None          |
-| `REDIS_SSL_CERT_REQS`| Whether the client should verify the server's certificate | `"required"`  |
-| `REDIS_SSL_CA_CERTS` | Path to the trusted CA certificates file                  | None          |
-| `REDIS_CLUSTER_MODE` | Enable Redis Cluster mode                                 | `False`       |
+| Name                       | Description                                                        | Default Value |
+|----------------------------|------------------------------------------------------------------- |---------------|
+| `REDIS_HOST`               | Redis IP or hostname                                               | `"127.0.0.1"` |
+| `REDIS_PORT`               | Redis port                                                         | `6379`        |
+| `REDIS_DB`                 | Database                                                           | 0             |
+| `REDIS_USERNAME`           | Default database username                                          | `"default"`   |
+| `REDIS_PWD`                | Default database password                                          | ""            |
+| `REDIS_SSL`                | Enables or disables SSL/TLS                                        | `False`       |
+| `REDIS_SSL_CA_PATH`    | CA certificate path for verifying server                           | None          |
+| `REDIS_SSL_KEYFILE`        | Client's private key file for client authentication                | None          |
+| `REDIS_SSL_CERTFILE`       | Client's certificate file for client authentication                | None          |
+| `REDIS_SSL_CERT_REQS`  | Certificate requirements (none, optional, or required)             | `"required"`  |
+| `REDIS_SSL_CA_CERTS`   | Path to the trusted CA certificates file                           | None          |
+| `REDIS_SSL_CHECK_HOSTNAME` | Verify SSL certificate hostname (auto-disabled when cert_reqs=none)| `True`        |
+| `REDIS_CLUSTER_MODE`       | Enable Redis Cluster mode                                          | `False`       |
 
 ### EntraID Authentication for Azure Managed Redis
 
