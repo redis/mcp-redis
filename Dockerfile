@@ -1,4 +1,7 @@
 FROM python:3.14-slim
+
+LABEL io.modelcontextprotocol.server.name="io.github.redis/mcp-redis"
+
 RUN pip install --upgrade uv
 
 WORKDIR /app

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.redis/mcp-redis",
+  "title": "Redis MCP Server",
+  "description": "Natural language interface designed for agentic applications to manage and search data in Redis.",
+  "version": "0.3.5",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "redis-mcp-server",
+      "version": "0.3.5",
+      "transport": {
+        "type": "stdio"
+      }
+    },
+    {
+      "registryType": "oci",
+      "identifier": "docker.io/mcp/redis:latest",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
+
