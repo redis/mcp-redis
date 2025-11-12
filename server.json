@@ -12,13 +12,6 @@
       "transport": {
         "type": "stdio"
       }
-    },
-    {
-      "registryType": "oci",
-      "identifier": "docker.io/mcp/redis:latest",
-      "transport": {
-        "type": "stdio"
-      }
     }
   ]
 }

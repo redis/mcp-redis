@@ -242,10 +242,86 @@
           name: dist-${{ needs.validate-release.outputs.version }}
           path: dist/
           retention-days: 90
-  
-    notify-success:
+
+    publish-mcp-registry:
       runs-on: ubuntu-latest
       needs: [validate-release, build-and-publish]
+      permissions:
+        id-token: write  # Required for GitHub OIDC authentication
+        contents: read
+
+      steps:
+      - name: ⚙️ Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: ⚙️ Checkout the project
+        uses: actions/checkout@v5
+
+      - name: ⚙️ Update server.json version
+        run: |
+          # Determine the target version
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TARGET_VERSION="${{ github.event.inputs.version }}"
+            echo "Using version from manual trigger: $TARGET_VERSION"
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            RELEASE_TAG="${{ github.event.release.tag_name }}"
+            TARGET_VERSION=$(echo "$RELEASE_TAG" | sed 's/^v//')
+            echo "Using version from release tag: $TARGET_VERSION (tag: $RELEASE_TAG)"
+          fi
+
+          # Update version in server.json
+          jq --arg v "$TARGET_VERSION" '.version = $v | .packages[0].version = $v' server.json > tmp && mv tmp server.json
+
+          # Verify the change
+          echo "Updated server.json:"
+          cat server.json
+
+      - name: ⚙️ Install MCP Publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          chmod +x mcp-publisher
+
+      - name: ⚙️ Verify server.json exists and is valid JSON
+        run: |
+          if [ ! -f server.json ]; then
+            echo "Error: server.json not found"
+            exit 1
+          fi
+
+          if ! jq empty server.json 2>/dev/null; then
+            echo "Error: server.json is not valid JSON"
+            exit 1
+          fi
+
+          echo "Success: server.json is valid JSON"
+          echo "Current server.json:"
+          cat server.json
+
+      - name: ⚙️ Login to MCP Registry
+        if: ${{ !inputs.dry_run }}
+        run: ./mcp-publisher login github-oidc
+
+      - name: ⚙️ Publish to MCP Registry
+        if: ${{ !inputs.dry_run }}
+        run: ./mcp-publisher publish
+
+      - name: ⚙️ Dry run notification
+        if: ${{ inputs.dry_run }}
+        run: |
+          VERSION=$(jq -r '.version' server.json)
+          echo "🔍 DRY RUN MODE - MCP Registry preparation successful!"
+          echo ""
+          echo "server.json is valid JSON and ready to publish"
+          echo "Server: io.github.redis/mcp-redis"
+          echo "Version: $VERSION"
+          echo ""
+          echo "To actually publish to MCP Registry, run this workflow again without dry_run enabled"
+
+    notify-success:
+      runs-on: ubuntu-latest
+      needs: [validate-release, build-and-publish, publish-mcp-registry]
       if: success()
       steps:
       - name: ⚙️ Success notification
@@ -255,12 +331,18 @@
             echo "📦 Package built successfully but not published"
             echo "🎯 Target environment: ${{ github.event.inputs.environment || 'pypi' }}"
           else
-            echo "🎉 Successfully released Redis MCP Server v${{ github.event.inputs.version || needs.validate-release.outputs.version }} to ${{ github.event.inputs.environment || 'PyPI' }}!"
+            echo "🎉 Successfully released Redis MCP Server v${{ github.event.inputs.version || needs.validate-release.outputs.version }}!"
+            echo ""
+            echo "📦 PyPI Package:"
             if [[ "${{ github.event.inputs.environment }}" == "testpypi" ]]; then
-              echo "📦 Package: https://test.pypi.org/project/redis-mcp-server/${{ github.event.inputs.version || needs.validate-release.outputs.version }}/"
+              echo "   https://test.pypi.org/project/redis-mcp-server/${{ github.event.inputs.version || needs.validate-release.outputs.version }}/"
             else
-              echo "📦 Package: https://pypi.org/project/redis-mcp-server/${{ github.event.inputs.version || needs.validate-release.outputs.version }}/"
+              echo "   https://pypi.org/project/redis-mcp-server/${{ github.event.inputs.version || needs.validate-release.outputs.version }}/"
             fi
+            echo ""
+            echo "🔌 MCP Registry:"
+            echo "   https://registry.modelcontextprotocol.io/v0/servers?search=redis"
+            echo ""
             if [[ "${{ github.event_name }}" == "release" ]]; then
               echo "🏷️ Release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
             else
