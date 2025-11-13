@@ -245,7 +245,7 @@
 
     publish-mcp-registry:
       runs-on: ubuntu-latest
-      needs: [validate-release, build-and-publish]
+      needs: [validate-release]  # TODO: restore build-and-publish dependency after testing
       permissions:
         id-token: write  # Required for GitHub OIDC authentication
         contents: read
