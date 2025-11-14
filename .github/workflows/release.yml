@@ -270,6 +270,9 @@
             RELEASE_TAG="${{ github.event.release.tag_name }}"
             TARGET_VERSION=$(echo "$RELEASE_TAG" | sed 's/^v//')
             echo "Using version from release tag: $TARGET_VERSION (tag: $RELEASE_TAG)"
+          else
+            echo "Error: Unexpected event type: ${{ github.event_name }}"
+            exit 1
           fi
 
           # Update version in server.json
