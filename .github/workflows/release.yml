@@ -301,11 +301,11 @@
           cat server.json
 
       - name: ⚙️ Login to MCP Registry
-        if: ${{ !inputs.dry_run }}
+        if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run != true) }}
         run: ./mcp-publisher login github-oidc
 
       - name: ⚙️ Publish to MCP Registry
-        if: ${{ !inputs.dry_run }}
+        if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run != true) }}
         run: ./mcp-publisher publish
 
       - name: ⚙️ Dry run notification
