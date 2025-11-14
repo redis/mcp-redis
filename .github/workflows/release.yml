@@ -260,6 +260,22 @@
       - name: ⚙️ Checkout the project
         uses: actions/checkout@v5
 
+      - name: ⚙️ Verify server.json exists and is valid JSON
+        run: |
+          if [ ! -f server.json ]; then
+            echo "Error: server.json not found"
+            exit 1
+          fi
+
+          if ! jq empty server.json 2>/dev/null; then
+            echo "Error: server.json is not valid JSON"
+            exit 1
+          fi
+
+          echo "Success: server.json is valid JSON"
+          echo "Original server.json:"
+          cat server.json
+
       - name: ⚙️ Update server.json version
         run: |
           # Determine the target version
@@ -275,10 +291,24 @@
             exit 1
           fi
 
-          # Update version in server.json
-          jq --arg v "$TARGET_VERSION" '.version = $v | .packages[0].version = $v' server.json > tmp && mv tmp server.json
+          # Update version in server.json (with validation)
+          if ! jq --arg v "$TARGET_VERSION" '.version = $v | .packages[0].version = $v' server.json > tmp; then
+            echo "Error: jq failed to update server.json"
+            rm -f tmp
+            exit 1
+          fi
 
-          # Verify the change
+          # Verify the updated content is valid JSON before replacing
+          if ! jq empty tmp 2>/dev/null; then
+            echo "Error: Updated server.json is not valid JSON"
+            cat tmp
+            rm -f tmp
+            exit 1
+          fi
+
+          # Replace original with validated update
+          mv tmp server.json
+
           echo "Updated server.json:"
           cat server.json
 
@@ -286,22 +316,6 @@
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xzf - mcp-publisher
           chmod +x mcp-publisher
-
-      - name: ⚙️ Verify server.json exists and is valid JSON
-        run: |
-          if [ ! -f server.json ]; then
-            echo "Error: server.json not found"
-            exit 1
-          fi
-
-          if ! jq empty server.json 2>/dev/null; then
-            echo "Error: server.json is not valid JSON"
-            exit 1
-          fi
-
-          echo "Success: server.json is valid JSON"
-          echo "Current server.json:"
-          cat server.json
 
       - name: ⚙️ Login to MCP Registry
         if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run != true) }}
