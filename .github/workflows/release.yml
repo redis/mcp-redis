@@ -312,7 +312,7 @@
         run: ./mcp-publisher publish
 
       - name: ⚙️ Dry run notification
-        if: ${{ inputs.dry_run }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == true }}
         run: |
           VERSION=$(jq -r '.version' server.json)
           echo "🔍 DRY RUN MODE - MCP Registry preparation successful!"
