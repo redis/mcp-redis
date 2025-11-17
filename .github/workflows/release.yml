@@ -340,7 +340,7 @@
     notify-success:
       runs-on: ubuntu-latest
       needs: [validate-release, build-and-publish, publish-mcp-registry]
-      if: success()
+      if: ${{ always() && !cancelled() && needs.build-and-publish.result == 'success' }}
       steps:
       - name: ⚙️ Success notification
         run: |
