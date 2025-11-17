@@ -302,11 +302,11 @@
           chmod +x mcp-publisher
 
       - name: ⚙️ Login to MCP Registry
-        if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run != true) }}
+        if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
         run: ./mcp-publisher login github-oidc
 
       - name: ⚙️ Publish to MCP Registry
-        if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.dry_run != true) }}
+        if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
         run: ./mcp-publisher publish
 
       - name: ⚙️ Dry run notification
