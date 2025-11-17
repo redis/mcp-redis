@@ -219,14 +219,13 @@
         with:
           subject-path: 'dist/*'
   
-      # TEMPORARY: Commented out for testing MCP publish
-      # - name: ⚙️ Publish to PyPI
-      #   if: ${{ !inputs.dry_run }}
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     repository-url: ${{ github.event.inputs.environment == 'testpypi' && 'https://test.pypi.org/legacy/' || '' }}
-      #     print-hash: true
-      #     attestations: true
+      - name: ⚙️ Publish to PyPI
+        if: ${{ !inputs.dry_run }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: ${{ github.event.inputs.environment == 'testpypi' && 'https://test.pypi.org/legacy/' || '' }}
+          print-hash: true
+          attestations: true
   
       - name: ⚙️ Dry run - Package ready for publishing
         if: ${{ inputs.dry_run }}
