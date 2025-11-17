@@ -260,22 +260,6 @@
       - name: ⚙️ Checkout the project
         uses: actions/checkout@v5
 
-      - name: ⚙️ Verify server.json exists and is valid JSON
-        run: |
-          if [ ! -f server.json ]; then
-            echo "Error: server.json not found"
-            exit 1
-          fi
-
-          if ! jq empty server.json 2>/dev/null; then
-            echo "Error: server.json is not valid JSON"
-            exit 1
-          fi
-
-          echo "Success: server.json is valid JSON"
-          echo "Original server.json:"
-          cat server.json
-
       - name: ⚙️ Update server.json version
         run: |
           # Determine the target version
