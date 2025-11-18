@@ -349,7 +349,7 @@ If desired, you can use environment variables. Defaults are provided for all var
 | `REDIS_SSL_CERTFILE`       | Client's certificate file for client authentication                | None          |
 | `REDIS_SSL_CERT_REQS`  | Certificate requirements (none, optional, or required)             | `"required"`  |
 | `REDIS_SSL_CA_CERTS`   | Path to the trusted CA certificates file                           | None          |
-| `REDIS_SSL_CHECK_HOSTNAME` | Verify SSL certificate hostname (auto-disabled when cert_reqs=none)| `True`        |
+| `REDIS_SSL_CHECK_HOSTNAME` | Verify SSL certificate hostname (auto-disabled when REDIS_SSL_CERT_REQS=none)| `True`        |
 | `REDIS_CLUSTER_MODE`       | Enable Redis Cluster mode                                          | `False`       |
 
 ### EntraID Authentication for Azure Managed Redis
