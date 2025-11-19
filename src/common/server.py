@@ -11,7 +11,7 @@ def load_tools():
 
 
 # Initialize FastMCP server
-mcp = FastMCP("Redis MCP Server", dependencies=["redis", "dotenv", "numpy"])
+mcp = FastMCP("Redis MCP Server", dependencies=["redis", "dotenv", "numpy", "aiohttp"])
 
 # Load tools
 load_tools()
