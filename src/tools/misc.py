@@ -199,26 +199,12 @@ async def scan_all_keys(
 
 
 @mcp.tool()
-async def search_documents(
+async def search_redis_documents(
     question: str,
 ) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
     """Search Redis documentation and knowledge base to learn about Redis concepts and use cases.
 
     This tool exposes updated and curated documentation, and must be invoked every time the user wants to learn more in areas including:
-
-    **Data Structures:**
-    - Hashes: Key-value pairs within a key, perfect for objects and records
-    - Sets: Unordered collections of unique strings
-    - Sorted Sets: Ordered collections with scores for ranking and leaderboards
-    - Lists: Ordered collections supporting push/pop operations
-    - Bitmaps: Bit-level operations for analytics and feature flags
-    - Streams: Log-like data structure for event sourcing and messaging
-    - JSON: Native JSON document storage and manipulation
-    - Pub/Sub: Real-time messaging and event broadcasting
-    - Full-text Search: Text indexing and search capabilities
-    - Vector Search: Semantic similarity search with embeddings
-    - Transactions: ACID operations with MULTI/EXEC
-    - Lua Scripting: Server-side script execution
 
     **Common Use Cases:**
     - Session Management: User session storage and management
