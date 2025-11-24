@@ -356,16 +356,6 @@ If desired, you can use environment variables. Defaults are provided for all var
 | `REDIS_CLUSTER_MODE` | Enable Redis Cluster mode                                 | `False`       |
 
 
-#### Docs search configuration
-
-The docs / knowledge-base search tool uses a separate environment variable:
-
-| Name                   | Description                                                                          | Default Value                                     |
-|------------------------|--------------------------------------------------------------------------------------|---------------------------------------------------|
-| `MCP_DOCS_SEARCH_URL`  | Base URL of the HTTP API the docs tool calls when you ask conceptual questions      | `"https://redis.io/convai/api/docs/search"`     |
-
-If unset, the default points at the Redis-hosted ConvAI docs search API. You can override this to point at your own mirror or internal docs backend as long as it implements a compatible HTTP JSON API.
-
 ### EntraID Authentication for Azure Managed Redis
 
 The Redis MCP Server supports **EntraID (Azure Active Directory) authentication** for Azure Managed Redis, enabling OAuth-based authentication with automatic token management.
