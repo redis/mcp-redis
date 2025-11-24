@@ -6,6 +6,7 @@ from redis.exceptions import RedisError
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 from src.common.config import MCP_DOCS_SEARCH_URL
+from src.version import __version__
 
 
 @mcp.tool()
@@ -231,7 +232,10 @@ async def search_redis_documents(
         return {"error": "Question parameter cannot be empty"}
 
     try:
-        headers = {"Accept": "application/json", "User-Agent": "Redis-MCP-Server/1.0"}
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": f"Redis-MCP-Server/{__version__}",
+        }
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 url=MCP_DOCS_SEARCH_URL, params={"q": question}, headers=headers
