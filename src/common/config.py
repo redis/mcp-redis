@@ -76,6 +76,11 @@ ENTRAID_CFG = {
     "resource": os.getenv("REDIS_ENTRAID_RESOURCE", "https://redis.azure.com/"),
 }
 
+# ConvAI API configuration
+MCP_DOCS_SEARCH_URL = os.getenv(
+    "MCP_DOCS_SEARCH_URL", "https://redis.io/convai/api/docs/search"
+)
+
 
 def parse_redis_uri(uri: str) -> dict:
     """Parse a Redis URI and return connection parameters."""

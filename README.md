@@ -78,6 +78,7 @@ This MCP Server provides tools to manage the data stored in Redis.
 
 Additional tools.
 
+- `docs` tool to search Redis documentation, tutorials, and best practices using natural language questions (backed by the `MCP_DOCS_SEARCH_URL` HTTP API).
 - `query engine` tools to manage vector indexes and perform vector search
 - `server management` tool to retrieve information about the database
 
@@ -353,6 +354,7 @@ If desired, you can use environment variables. Defaults are provided for all var
 | `REDIS_SSL_CERT_REQS`| Whether the client should verify the server's certificate | `"required"`  |
 | `REDIS_SSL_CA_CERTS` | Path to the trusted CA certificates file                  | None          |
 | `REDIS_CLUSTER_MODE` | Enable Redis Cluster mode                                 | `False`       |
+
 
 ### EntraID Authentication for Azure Managed Redis
 
@@ -670,8 +672,8 @@ For more information, see the [VS Code documentation](https://code.visualstudio.
 
 > **Tip:** You can prompt Copilot chat to use the Redis MCP tools by including `#redis` in your message.
 
-> **Note:** Starting with [VS Code v1.102](https://code.visualstudio.com/updates/v1_102),  
-> MCP servers are now stored in a dedicated `mcp.json` file instead of `settings.json`. 
+> **Note:** Starting with [VS Code v1.102](https://code.visualstudio.com/updates/v1_102),
+> MCP servers are now stored in a dedicated `mcp.json` file instead of `settings.json`.
 
 ## Testing
 
