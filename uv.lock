@@ -2170,7 +2170,7 @@ wheels = [
 
 [[package]]
 name = "redis-mcp-server"
-version = "0.3.6"
+version = "0.4.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
