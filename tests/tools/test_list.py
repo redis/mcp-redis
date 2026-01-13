@@ -5,7 +5,7 @@ Unit tests for src/tools/list.py
 import pytest
 from redis.exceptions import RedisError
 
-from src.tools.list import llen, lpop, lpush, lrange, rpop, rpush
+from src.tools.list import llen, lpop, lpush, lrange, rpop, rpush, lrem
 
 
 class TestListOperations:
@@ -278,3 +278,62 @@ class TestListOperations:
         # Results should indicate successful push regardless of return value
         assert "pushed to the left of list" in result1
         assert "pushed to the right of list" in result2
+
+    @pytest.mark.asyncio
+    async def test_lrem_success_single_removal(self, mock_redis_connection_manager):
+        """Test successful removal of a single matching element."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.lrem.return_value = 1
+
+        result = await lrem("test_list", 1, "value1")
+
+        mock_redis.lrem.assert_called_once_with("test_list", 1, "value1")
+        assert "Removed 1 occurrence(s) of 'value1' from list 'test_list'" in result
+
+    @pytest.mark.asyncio
+    async def test_lrem_success_multiple_removal(self, mock_redis_connection_manager):
+        """Test successful removal of multiple matching elements."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.lrem.return_value = 3
+
+        result = await lrem("test_list", 0, "value1")
+
+        mock_redis.lrem.assert_called_once_with("test_list", 0, "value1")
+        assert "Removed 3 occurrence(s) of 'value1' from list 'test_list'" in result
+
+    @pytest.mark.asyncio
+    async def test_lrem_no_elements_removed(self, mock_redis_connection_manager):
+        """Test when no elements are removed because the element is not found."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.lrem.return_value = 0
+
+        result = await lrem("test_list", 2, "missing_value")
+
+        mock_redis.lrem.assert_called_once_with("test_list", 2, "missing_value")
+        assert (
+            "Element 'missing_value' not found in list 'test_list' or list does not exist."
+            in result
+        )
+
+    @pytest.mark.asyncio
+    async def test_lrem_negative_count(self, mock_redis_connection_manager):
+        """Test removal with a negative count (from tail)."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.lrem.return_value = 2
+
+        result = await lrem("test_list", -2, "value_tail")
+
+        mock_redis.lrem.assert_called_once_with("test_list", -2, "value_tail")
+        assert "Removed 2 occurrence(s) of 'value_tail' from list 'test_list'" in result
+
+    @pytest.mark.asyncio
+    async def test_lrem_redis_error(self, mock_redis_connection_manager):
+        """Test error handling during lrem operation."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.lrem.side_effect = RedisError("Connection failed")
+
+        result = await lrem("test_list", 1, "value1")
+
+        assert (
+            "Error removing element from list 'test_list': Connection failed" in result
+        )
