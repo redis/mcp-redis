@@ -9,8 +9,16 @@
         "--from",
         "redis-mcp-server@latest",
         "redis-mcp-server",
-        "--url", "${REDIS_URL}"
+        "--url",
+        "${REDIS_URL}"
       ]
     }
-  }
+  },
+  "settings": [
+    {
+      "name": "Redis URL",
+      "description": "Redis URL",
+      "envVar": "REDIS_URL"
+    }
+  ]
 }
