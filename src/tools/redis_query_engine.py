@@ -147,3 +147,64 @@ async def vector_search_hash(
         return [doc.__dict__ for doc in results.docs]
     except RedisError as e:
         return f"Error performing vector search on index '{index_name}': {str(e)}"
+
+
+@mcp.tool()
+async def hybrid_search(
+    query_vector: List[float],
+    filter_expression: str = "*",
+    index_name: str = "vector_index",
+    vector_field: str = "vector",
+    k: int = 5,
+    return_fields: Optional[List[str]] = None,
+) -> Union[List[Dict[str, Any]], str]:
+    """
+    Perform a hybrid search combining a Redis filter expression with KNN vector similarity.
+
+    Hybrid search pre-filters documents by metadata before ranking by vector similarity —
+    the standard pattern for production RAG and semantic search pipelines.
+
+    Filter expression examples:
+        "*"                              → no filter, pure vector search (same as vector_search_hash)
+        "@category:{news}"              → tag filter
+        "@year:[2020 2024]"             → numeric range
+        "@lang:{en} @year:[2022 +inf]"  → combined tag + range
+        "@title:redis"                  → full-text match on a text field
+
+    Full filter syntax: https://redis.io/docs/latest/develop/interact/search-and-query/query/
+
+    Args:
+        query_vector:       List of floats to use as the query vector.
+        filter_expression:  Redis filter expression to restrict candidates before KNN ranking.
+                            Defaults to '*' (no filter).
+        index_name:         Name of the Redis index (default: 'vector_index').
+        vector_field:       Name of the indexed vector field (default: 'vector').
+        k:                  Number of nearest neighbors to return.
+        return_fields:      Additional fields to include in results (optional).
+
+    Returns:
+        A list of matched documents with their similarity score, or an error message.
+    """
+    try:
+        r = RedisConnectionManager.get_connection()
+
+        vector_blob = np.array(query_vector, dtype=np.float32).tobytes()
+
+        base_query = (
+            f"({filter_expression})=>[KNN {k} @{vector_field} $vec_param AS score]"
+        )
+        query = (
+            Query(base_query)
+            .sort_by("score")
+            .paging(0, k)
+            .return_fields("id", "score", *return_fields or [])
+            .dialect(2)
+        )
+
+        results = r.ft(index_name).search(
+            query, query_params={"vec_param": vector_blob}
+        )
+
+        return [doc.__dict__ for doc in results.docs]
+    except RedisError as e:
+        return f"Error performing hybrid search on index '{index_name}': {str(e)}"

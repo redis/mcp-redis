@@ -199,6 +199,7 @@ class TestMCPServerIntegration:
             "hdel",
             "hgetall",
             "hexists",
+            "hybrid_search",
             "set_vector_in_hash",
             "get_vector_from_hash",
             "json_set",
@@ -270,7 +271,7 @@ class TestMCPServerIntegration:
         tool_names = [tool["name"] for tool in tools]
 
         # Expected tool count (based on @mcp.tool() decorators in codebase)
-        expected_tool_count = 46
+        expected_tool_count = 47
         assert len(tools) == expected_tool_count, (
             f"Expected {expected_tool_count} tools, but got {len(tools)}"
         )
@@ -292,6 +293,7 @@ class TestMCPServerIntegration:
             "hget",
             "hgetall",
             "hset",
+            "hybrid_search",
             "info",
             "json_del",
             "json_get",
