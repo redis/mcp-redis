@@ -16,6 +16,7 @@ from src.tools.redis_query_engine import (
     get_index_info,
     get_indexes,
     vector_search_hash,
+    hybrid_search,
 )
 
 
@@ -343,3 +344,197 @@ class TestRedisQueryEngineOperations:
             await get_indexes()
 
             mock_get_conn.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_success(
+        self, mock_redis_connection_manager, sample_vector
+    ):
+        """Test successful hybrid search with a filter expression."""
+        mock_redis = mock_redis_connection_manager
+        mock_ft = Mock()
+        mock_redis.ft.return_value = mock_ft
+
+        mock_doc1 = Mock()
+        mock_doc1.__dict__ = {"id": "doc1", "score": "0.95", "category": "news"}
+        mock_doc2 = Mock()
+        mock_doc2.__dict__ = {"id": "doc2", "score": "0.87", "category": "news"}
+
+        mock_result = Mock()
+        mock_result.docs = [mock_doc1, mock_doc2]
+        mock_ft.search.return_value = mock_result
+
+        with patch("numpy.array") as mock_np_array:
+            mock_np_array.return_value.tobytes.return_value = b"query_vector_bytes"
+
+            result = await hybrid_search(
+                query_vector=sample_vector,
+                filter_expression="@category:{news}",
+            )
+
+            mock_redis.ft.assert_called_once_with("vector_index")
+            mock_ft.search.assert_called_once()
+
+            search_call_args = mock_ft.search.call_args[0][0]
+            assert isinstance(search_call_args, Query)
+
+            assert isinstance(result, list)
+            assert len(result) == 2
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_no_filter(
+        self, mock_redis_connection_manager, sample_vector
+    ):
+        """Test hybrid search with default '*' filter behaves like pure vector search."""
+        mock_redis = mock_redis_connection_manager
+        mock_ft = Mock()
+        mock_redis.ft.return_value = mock_ft
+
+        mock_doc = Mock()
+        mock_doc.__dict__ = {"id": "doc1", "score": "0.91"}
+
+        mock_result = Mock()
+        mock_result.docs = [mock_doc]
+        mock_ft.search.return_value = mock_result
+
+        with patch("numpy.array") as mock_np_array:
+            mock_np_array.return_value.tobytes.return_value = b"query_vector_bytes"
+
+            result = await hybrid_search(query_vector=sample_vector)
+
+            # Verify the query string contains the default wildcard filter
+            search_call_args = mock_ft.search.call_args[0][0]
+            assert "(*)" in search_call_args.query_string()
+
+            assert isinstance(result, list)
+            assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_numeric_range_filter(
+        self, mock_redis_connection_manager, sample_vector
+    ):
+        """Test hybrid search with a numeric range filter expression."""
+        mock_redis = mock_redis_connection_manager
+        mock_ft = Mock()
+        mock_redis.ft.return_value = mock_ft
+
+        mock_result = Mock()
+        mock_result.docs = []
+        mock_ft.search.return_value = mock_result
+
+        with patch("numpy.array") as mock_np_array:
+            mock_np_array.return_value.tobytes.return_value = b"query_vector_bytes"
+
+            result = await hybrid_search(
+                query_vector=sample_vector,
+                filter_expression="@year:[2020 2024]",
+            )
+
+            search_call_args = mock_ft.search.call_args[0][0]
+            assert "@year:[2020 2024]" in search_call_args.query_string()
+            assert result == []
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_custom_params(
+        self, mock_redis_connection_manager, sample_vector
+    ):
+        """Test hybrid search with custom index, field, k, and return_fields."""
+        mock_redis = mock_redis_connection_manager
+        mock_ft = Mock()
+        mock_redis.ft.return_value = mock_ft
+
+        mock_result = Mock()
+        mock_result.docs = []
+        mock_ft.search.return_value = mock_result
+
+        with patch("numpy.array") as mock_np_array:
+            mock_np_array.return_value.tobytes.return_value = b"query_vector_bytes"
+
+            result = await hybrid_search(
+                query_vector=sample_vector,
+                filter_expression="@lang:{en}",
+                index_name="custom_index",
+                vector_field="embedding",
+                k=10,
+                return_fields=["title", "content"],
+            )
+
+            mock_redis.ft.assert_called_once_with("custom_index")
+            assert isinstance(result, list)
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_no_results(
+        self, mock_redis_connection_manager, sample_vector
+    ):
+        """Test hybrid search returns empty list when filter matches nothing."""
+        mock_redis = mock_redis_connection_manager
+        mock_ft = Mock()
+        mock_redis.ft.return_value = mock_ft
+
+        mock_result = Mock()
+        mock_result.docs = []
+        mock_ft.search.return_value = mock_result
+
+        with patch("numpy.array") as mock_np_array:
+            mock_np_array.return_value.tobytes.return_value = b"query_vector_bytes"
+
+            result = await hybrid_search(
+                query_vector=sample_vector,
+                filter_expression="@category:{nonexistent}",
+            )
+
+            assert result == []
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_redis_error(
+        self, mock_redis_connection_manager, sample_vector
+    ):
+        """Test hybrid search with Redis error."""
+        mock_redis = mock_redis_connection_manager
+        mock_ft = Mock()
+        mock_redis.ft.return_value = mock_ft
+        mock_ft.search.side_effect = RedisError("Index not found")
+
+        with patch("numpy.array") as mock_np_array:
+            mock_np_array.return_value.tobytes.return_value = b"query_vector_bytes"
+
+            result = await hybrid_search(sample_vector)
+
+            assert (
+                "Error performing hybrid search on index 'vector_index': Index not found"
+                in result
+            )
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_combined_filter(
+        self, mock_redis_connection_manager, sample_vector
+    ):
+        """Test hybrid search with combined tag and range filter."""
+        mock_redis = mock_redis_connection_manager
+        mock_ft = Mock()
+        mock_redis.ft.return_value = mock_ft
+
+        mock_doc = Mock()
+        mock_doc.__dict__ = {
+            "id": "doc1",
+            "score": "0.88",
+            "lang": "en",
+            "year": "2023",
+        }
+
+        mock_result = Mock()
+        mock_result.docs = [mock_doc]
+        mock_ft.search.return_value = mock_result
+
+        with patch("numpy.array") as mock_np_array:
+            mock_np_array.return_value.tobytes.return_value = b"query_vector_bytes"
+
+            result = await hybrid_search(
+                query_vector=sample_vector,
+                filter_expression="@lang:{en} @year:[2022 +inf]",
+            )
+
+            search_call_args = mock_ft.search.call_args[0][0]
+            assert "@lang:{en} @year:[2022 +inf]" in search_call_args.query_string()
+
+            assert len(result) == 1
+            assert result[0]["id"] == "doc1"
