@@ -356,6 +356,7 @@ class TestMCPServerIntegration:
             "vector_search": [
                 "create_vector_index_hash",
                 "vector_search_hash",
+                "hybrid_search",
                 "get_indexes",
                 "get_index_info",
                 "set_vector_in_hash",
