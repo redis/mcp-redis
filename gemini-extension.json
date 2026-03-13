@@ -18,7 +18,8 @@
     {
       "name": "Redis URL",
       "description": "Connection URL for your Redis instance (e.g., redis://localhost:6379/0)",
-      "envVar": "REDIS_URL"
+      "envVar": "REDIS_URL",
+      "sensitive": true
     }
   ]
 }
