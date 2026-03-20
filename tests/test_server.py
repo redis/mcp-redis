@@ -42,7 +42,8 @@ class TestMCPServer:
 
         # Verify FastMCP was called with correct parameters
         mock_fastmcp.assert_called_once_with(
-            "Redis MCP Server", dependencies=["redis", "dotenv", "numpy", "aiohttp"]
+            "Redis MCP Server",
+            dependencies=["redis", "python-dotenv", "numpy", "aiohttp"],
         )
 
     def test_mcp_server_tool_decorator(self):
@@ -110,7 +111,7 @@ class TestMCPServer:
         assert call_args[0][0] == "Redis MCP Server"  # First positional argument
         assert call_args[1]["dependencies"] == [
             "redis",
-            "dotenv",
+            "python-dotenv",
             "numpy",
             "aiohttp",
         ]  # Keyword argument
