@@ -32,6 +32,8 @@ async def test_search_redis_documents_success_json_response(monkeypatch):
     """Return parsed JSON when the docs API responds with JSON for search_redis_documents."""
 
     class DummyResponse:
+        status = 200
+
         async def __aenter__(self):
             return self
 
@@ -42,6 +44,9 @@ async def test_search_redis_documents_success_json_response(monkeypatch):
             return {"results": [{"title": "Redis Intro"}]}
 
     class DummySession:
+        def __init__(self, *_, **__):
+            pass
+
         async def __aenter__(self):
             return self
 
@@ -68,6 +73,8 @@ async def test_search_redis_documents_non_json_response(monkeypatch):
         pass
 
     class DummyResponse:
+        status = 200
+
         async def __aenter__(self):
             return self
 
@@ -81,6 +88,9 @@ async def test_search_redis_documents_non_json_response(monkeypatch):
             return "<html>not json</html>"
 
     class DummySession:
+        def __init__(self, *_, **__):
+            pass
+
         async def __aenter__(self):
             return self
 
@@ -117,6 +127,9 @@ async def test_search_redis_documents_http_client_error(monkeypatch):
             return False
 
     class DummySession:
+        def __init__(self, *_, **__):
+            pass
+
         async def __aenter__(self):
             return self
 
@@ -134,3 +147,77 @@ async def test_search_redis_documents_http_client_error(monkeypatch):
 
     assert isinstance(result, dict)
     assert result["error"] == "HTTP client error: boom"
+
+
+@pytest.mark.asyncio
+async def test_search_redis_documents_http_error_status_with_json(monkeypatch):
+    """HTTP >=400 with JSON payload should return structured error details."""
+
+    class DummyResponse:
+        status = 503
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def json(self):
+            return {"error": "upstream unavailable"}
+
+    class DummySession:
+        def __init__(self, *_, **__):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        def get(self, *_, **__):
+            return DummyResponse()
+
+    monkeypatch.setattr(misc, "MCP_DOCS_SEARCH_URL", "https://example.com/docs")
+    monkeypatch.setattr(misc.aiohttp, "ClientSession", DummySession)
+
+    result = await misc.search_redis_documents("What is Redis?")
+
+    assert isinstance(result, dict)
+    assert result["error"] == "Docs search request failed with status 503"
+    assert result["details"] == {"error": "upstream unavailable"}
+
+
+@pytest.mark.asyncio
+async def test_search_redis_documents_timeout(monkeypatch):
+    """Timeouts should return a clear bounded-latency error."""
+
+    class TimeoutResponse:
+        async def __aenter__(self):
+            raise TimeoutError("timed out")
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    class DummySession:
+        def __init__(self, *_, **__):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        def get(self, *_, **__):
+            return TimeoutResponse()
+
+    monkeypatch.setattr(misc, "MCP_DOCS_SEARCH_URL", "https://example.com/docs")
+    monkeypatch.setattr(misc.aiohttp, "ClientSession", DummySession)
+
+    result = await misc.search_redis_documents("What is Redis?")
+
+    assert isinstance(result, dict)
+    assert result["error"] == (
+        f"Docs search request timed out after {misc.DOCS_SEARCH_TIMEOUT_SECONDS} seconds"
+    )
