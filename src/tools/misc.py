@@ -266,7 +266,7 @@ async def search_redis_documents(
                     text_content = await response.text()
                     return {"error": f"Non-JSON response: {text_content}"}
 
-    except asyncio.TimeoutError:
+    except (asyncio.TimeoutError, TimeoutError):
         return {
             "error": f"Docs search request timed out after {DOCS_SEARCH_TIMEOUT_SECONDS} seconds"
         }
