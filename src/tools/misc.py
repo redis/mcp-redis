@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Dict, Union, List
 import aiohttp
 
@@ -7,6 +8,8 @@ from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 from src.common.config import MCP_DOCS_SEARCH_URL
 from src.version import __version__
+
+DOCS_SEARCH_TIMEOUT_SECONDS = 10
 
 
 @mcp.tool()
@@ -236,10 +239,24 @@ async def search_redis_documents(
             "Accept": "application/json",
             "User-Agent": f"Redis-MCP-Server/{__version__}",
         }
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(total=DOCS_SEARCH_TIMEOUT_SECONDS)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(
                 url=MCP_DOCS_SEARCH_URL, params={"q": question}, headers=headers
             ) as response:
+                if response.status >= 400:
+                    try:
+                        error_payload = await response.json()
+                        return {
+                            "error": f"Docs search request failed with status {response.status}",
+                            "details": error_payload,
+                        }
+                    except aiohttp.ContentTypeError:
+                        text_content = await response.text()
+                        return {
+                            "error": f"Docs search request failed with status {response.status}: {text_content}"
+                        }
+
                 # Try to parse JSON response
                 try:
                     result = await response.json()
@@ -249,7 +266,11 @@ async def search_redis_documents(
                     text_content = await response.text()
                     return {"error": f"Non-JSON response: {text_content}"}
 
+    except (asyncio.TimeoutError, TimeoutError):
+        return {
+            "error": f"Docs search request timed out after {DOCS_SEARCH_TIMEOUT_SECONDS} seconds"
+        }
     except aiohttp.ClientError as e:
         return {"error": f"HTTP client error: {str(e)}"}
     except Exception as e:
-        return {"error": f"Unexpected error calling ConvAI API: {str(e)}"}
+        return {"error": f"Unexpected error calling docs API: {str(e)}"}
