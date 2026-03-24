@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 from redis.exceptions import RedisError
 
-from src.tools.stream import xadd, xdel, xrange
+from src.tools.stream import xack, xadd, xdel, xgroup_create, xrange, xreadgroup
 
 
 class TestStreamOperations:
@@ -160,6 +160,189 @@ class TestStreamOperations:
         assert "Error deleting from stream test_stream: Connection failed" in result
 
     @pytest.mark.asyncio
+    async def test_xgroup_create_success(self, mock_redis_connection_manager):
+        """Test successful consumer group creation."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xgroup_create.return_value = True
+
+        result = await xgroup_create("test_stream", "workers")
+
+        mock_redis.xgroup_create.assert_called_once_with(
+            "test_stream", "workers", id="$", mkstream=True
+        )
+        assert (
+            result
+            == "Successfully created consumer group 'workers' on stream 'test_stream'"
+        )
+
+    @pytest.mark.asyncio
+    async def test_xgroup_create_with_custom_options(
+        self, mock_redis_connection_manager
+    ):
+        """Test consumer group creation with explicit start ID and no stream creation."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xgroup_create.return_value = True
+
+        result = await xgroup_create(
+            "test_stream", "workers", start_id="0-0", mkstream=False
+        )
+
+        mock_redis.xgroup_create.assert_called_once_with(
+            "test_stream", "workers", id="0-0", mkstream=False
+        )
+        assert (
+            result
+            == "Successfully created consumer group 'workers' on stream 'test_stream'"
+        )
+
+    @pytest.mark.asyncio
+    async def test_xgroup_create_redis_error(self, mock_redis_connection_manager):
+        """Test consumer group creation with Redis error."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xgroup_create.side_effect = RedisError(
+            "BUSYGROUP Consumer Group name already exists"
+        )
+
+        result = await xgroup_create("test_stream", "workers")
+
+        assert (
+            "Error creating consumer group 'workers' on stream 'test_stream': "
+            "BUSYGROUP Consumer Group name already exists"
+        ) == result
+
+    @pytest.mark.asyncio
+    async def test_xreadgroup_success(self, mock_redis_connection_manager):
+        """Test successful consumer-group read."""
+        mock_redis = mock_redis_connection_manager
+        mock_entries = [
+            ("test_stream", [("1234567890123-0", {"field1": "value1"})]),
+        ]
+        mock_redis.xreadgroup.return_value = mock_entries
+
+        result = await xreadgroup("test_stream", "workers", "consumer-1")
+
+        mock_redis.xreadgroup.assert_called_once_with(
+            "workers",
+            "consumer-1",
+            {"test_stream": ">"},
+            count=1,
+            block=None,
+        )
+        assert result == str(mock_entries)
+
+    @pytest.mark.asyncio
+    async def test_xreadgroup_with_count_and_block(self, mock_redis_connection_manager):
+        """Test consumer-group read with count and blocking options."""
+        mock_redis = mock_redis_connection_manager
+        mock_entries = [
+            ("test_stream", [("1234567890124-0", {"field1": "value2"})]),
+        ]
+        mock_redis.xreadgroup.return_value = mock_entries
+
+        result = await xreadgroup(
+            "test_stream",
+            "workers",
+            "consumer-1",
+            count=5,
+            block_ms=1000,
+            stream_id="0",
+        )
+
+        mock_redis.xreadgroup.assert_called_once_with(
+            "workers",
+            "consumer-1",
+            {"test_stream": "0"},
+            count=5,
+            block=1000,
+        )
+        assert result == str(mock_entries)
+
+    @pytest.mark.asyncio
+    async def test_xreadgroup_empty_result(self, mock_redis_connection_manager):
+        """Test consumer-group read when no entries are available."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xreadgroup.return_value = []
+
+        result = await xreadgroup("test_stream", "workers", "consumer-1")
+
+        assert (
+            result
+            == "No entries available for consumer 'consumer-1' in group 'workers' on stream 'test_stream'"
+        )
+
+    @pytest.mark.asyncio
+    async def test_xreadgroup_redis_error(self, mock_redis_connection_manager):
+        """Test consumer-group read with Redis error."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xreadgroup.side_effect = RedisError("NOGROUP No such key")
+
+        result = await xreadgroup("test_stream", "workers", "consumer-1")
+
+        assert (
+            "Error reading from stream test_stream with consumer group 'workers': "
+            "NOGROUP No such key"
+        ) == result
+
+    @pytest.mark.asyncio
+    async def test_xack_success(self, mock_redis_connection_manager):
+        """Test successful acknowledgment of stream entries."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xack.return_value = 2
+
+        result = await xack(
+            "test_stream", "workers", ["1234567890123-0", "1234567890124-0"]
+        )
+
+        mock_redis.xack.assert_called_once_with(
+            "test_stream", "workers", "1234567890123-0", "1234567890124-0"
+        )
+        assert (
+            result
+            == "Successfully acknowledged 2 entries in group 'workers' on stream 'test_stream'"
+        )
+
+    @pytest.mark.asyncio
+    async def test_xack_single_entry_success(self, mock_redis_connection_manager):
+        """Test successful acknowledgment of a single stream entry."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xack.return_value = 1
+
+        result = await xack("test_stream", "workers", ["1234567890123-0"])
+
+        mock_redis.xack.assert_called_once_with(
+            "test_stream", "workers", "1234567890123-0"
+        )
+        assert (
+            result
+            == "Successfully acknowledged 1 entry in group 'workers' on stream 'test_stream'"
+        )
+
+    @pytest.mark.asyncio
+    async def test_xack_requires_entry_ids(self, mock_redis_connection_manager):
+        """Test acknowledgment validation when no entry IDs are supplied."""
+        mock_redis = mock_redis_connection_manager
+
+        result = await xack("test_stream", "workers", [])
+
+        mock_redis.xack.assert_not_called()
+        assert (
+            result == "At least one entry ID is required to acknowledge stream entries"
+        )
+
+    @pytest.mark.asyncio
+    async def test_xack_redis_error(self, mock_redis_connection_manager):
+        """Test acknowledgment with Redis error."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xack.side_effect = RedisError("NOGROUP No such key")
+
+        result = await xack("test_stream", "workers", ["1234567890123-0"])
+
+        assert (
+            "Error acknowledging entries for consumer group 'workers' on stream "
+            "'test_stream': NOGROUP No such key"
+        ) == result
+
+    @pytest.mark.asyncio
     async def test_xadd_with_empty_fields(self, mock_redis_connection_manager):
         """Test stream add operation with empty fields dictionary."""
         mock_redis = mock_redis_connection_manager
@@ -272,6 +455,33 @@ class TestStreamOperations:
         xdel_sig = inspect.signature(xdel)
         xdel_params = list(xdel_sig.parameters.keys())
         assert xdel_params == ["key", "entry_id"]
+
+        # Test xgroup_create function signature
+        xgroup_create_sig = inspect.signature(xgroup_create)
+        xgroup_create_params = list(xgroup_create_sig.parameters.keys())
+        assert xgroup_create_params == ["key", "group_name", "start_id", "mkstream"]
+        assert xgroup_create_sig.parameters["start_id"].default == "$"
+        assert xgroup_create_sig.parameters["mkstream"].default is True
+
+        # Test xreadgroup function signature
+        xreadgroup_sig = inspect.signature(xreadgroup)
+        xreadgroup_params = list(xreadgroup_sig.parameters.keys())
+        assert xreadgroup_params == [
+            "key",
+            "group_name",
+            "consumer_name",
+            "count",
+            "block_ms",
+            "stream_id",
+        ]
+        assert xreadgroup_sig.parameters["count"].default == 1
+        assert xreadgroup_sig.parameters["block_ms"].default is None
+        assert xreadgroup_sig.parameters["stream_id"].default == ">"
+
+        # Test xack function signature
+        xack_sig = inspect.signature(xack)
+        xack_params = list(xack_sig.parameters.keys())
+        assert xack_params == ["key", "group_name", "entry_ids"]
 
     @pytest.mark.asyncio
     async def test_xadd_with_complex_fields(self, mock_redis_connection_manager):
