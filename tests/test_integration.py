@@ -246,9 +246,9 @@ class TestMCPServerIntegration:
             "lrem",
         ]
         for tool in tool_names:
-            assert (
-                tool in expected_tools
-            ), f"Expected tool '{tool}' not found in {tool_names}"
+            assert tool in expected_tools, (
+                f"Expected tool '{tool}' not found in {tool_names}"
+            )
 
     def test_server_tool_count_and_names(self, server_process):
         """Test that the server registers the correct number of tools with expected names."""
@@ -275,9 +275,9 @@ class TestMCPServerIntegration:
 
         # Expected tool count (based on @mcp.tool() decorators in codebase)
         expected_tool_count = 50
-        assert (
-            len(tools) == expected_tool_count
-        ), f"Expected {expected_tool_count} tools, but got {len(tools)}"
+        assert len(tools) == expected_tool_count, (
+            f"Expected {expected_tool_count} tools, but got {len(tools)}"
+        )
 
         # Expected tool names (alphabetically sorted for easier verification)
         expected_tools = [
@@ -373,9 +373,9 @@ class TestMCPServerIntegration:
 
         for category, category_tools in tool_categories.items():
             for tool in category_tools:
-                assert (
-                    tool in tool_names
-                ), f"Tool '{tool}' from category '{category}' not found in registered tools"
+                assert tool in tool_names, (
+                    f"Tool '{tool}' from category '{category}' not found in registered tools"
+                )
 
     def _initialize_server(self, server_process):
         """Helper to initialize the MCP server."""
