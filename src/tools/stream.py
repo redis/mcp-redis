@@ -119,11 +119,16 @@ async def xreadgroup(
         consumer_name (str): The consumer name.
         count (int, optional): Maximum number of entries to retrieve.
         block_ms (int, optional): Maximum time to block waiting for entries.
+            Use None for a non-blocking read. 0 is rejected because Redis treats
+            BLOCK 0 as an indefinite wait.
         stream_id (str, optional): Stream ID to read from. Use ">" for new messages.
 
     Returns:
         str: The retrieved stream entries or an error message.
     """
+    if block_ms == 0:
+        return "block_ms=0 is not allowed; use None for a non-blocking read or a positive timeout in milliseconds"
+
     try:
         r = RedisConnectionManager.get_connection()
         entries = r.xreadgroup(
