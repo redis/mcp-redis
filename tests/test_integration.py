@@ -236,6 +236,9 @@ class TestMCPServerIntegration:
             "zrange",
             "zrem",
             "xadd",
+            "xgroup_create",
+            "xreadgroup",
+            "xack",
             "xrange",
             "xdel",
             "set",
@@ -271,7 +274,7 @@ class TestMCPServerIntegration:
         tool_names = [tool["name"] for tool in tools]
 
         # Expected tool count (based on @mcp.tool() decorators in codebase)
-        expected_tool_count = 47
+        expected_tool_count = 50
         assert len(tools) == expected_tool_count, (
             f"Expected {expected_tool_count} tools, but got {len(tools)}"
         )
@@ -319,9 +322,12 @@ class TestMCPServerIntegration:
             "type",
             "unsubscribe",
             "vector_search_hash",
+            "xack",
             "xadd",
             "xdel",
+            "xgroup_create",
             "xrange",
+            "xreadgroup",
             "zadd",
             "zrange",
             "zrem",
@@ -341,7 +347,7 @@ class TestMCPServerIntegration:
             "list": ["lpush", "rpush", "lpop", "rpop", "lrange", "llen"],
             "set": ["sadd", "srem", "smembers"],
             "sorted_set": ["zadd", "zrem", "zrange"],
-            "stream": ["xadd", "xdel", "xrange"],
+            "stream": ["xadd", "xdel", "xgroup_create", "xrange", "xreadgroup", "xack"],
             "json": ["json_get", "json_set", "json_del"],
             "pub_sub": ["publish", "subscribe", "unsubscribe"],
             "server_mgmt": ["dbsize", "info", "client_list"],
