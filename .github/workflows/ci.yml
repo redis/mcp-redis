@@ -138,7 +138,7 @@ jobs:
         REDIS_PORT: 6379
 
     - name: ⚙️ Upload coverage reports
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       if: matrix.python-version == '3.12'
       with:
         files: ./coverage.xml
