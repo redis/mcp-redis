@@ -25,6 +25,10 @@ The Redis MCP Server is a **natural language interface** designed for agentic ap
 - "Store the session with an expiration time"
 - "Index and search this vector"
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/redis-mcp-redis).
+
 ## Table of Contents
 - [Overview](#overview)
 - [Features](#features)
