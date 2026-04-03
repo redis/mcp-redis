@@ -103,6 +103,31 @@ async def xgroup_create(
 
 
 @mcp.tool()
+async def xgroup_destroy(key: str, group_name: str) -> str:
+    """Destroy a consumer group for a Redis stream.
+
+    Args:
+        key (str): The stream key.
+        group_name (str): The consumer group name.
+
+    Returns:
+        str: Confirmation message or an error message.
+    """
+    try:
+        r = RedisConnectionManager.get_connection()
+        result = r.xgroup_destroy(key, group_name)
+        return (
+            f"Successfully destroyed consumer group '{group_name}' on stream '{key}'"
+            if result
+            else f"Consumer group '{group_name}' not found on stream '{key}'"
+        )
+    except RedisError as e:
+        return (
+            f"Error destroying consumer group '{group_name}' on stream '{key}': {str(e)}"
+        )
+
+
+@mcp.tool()
 async def xreadgroup(
     key: str,
     group_name: str,
@@ -126,8 +151,14 @@ async def xreadgroup(
     Returns:
         str: The retrieved stream entries or an error message.
     """
+    if count < 1:
+        return "count must be greater than 0"
     if block_ms == 0:
         return "block_ms=0 is not allowed; use None for a non-blocking read or a positive timeout in milliseconds"
+    if block_ms is not None and block_ms < 0:
+        return "block_ms must be greater than or equal to 0"
+    if block_ms is not None and block_ms > 5000:
+        return "block_ms must be less than or equal to 5000 milliseconds"
 
     try:
         r = RedisConnectionManager.get_connection()

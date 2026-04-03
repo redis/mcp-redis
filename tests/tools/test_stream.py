@@ -7,7 +7,15 @@ from unittest.mock import Mock, patch
 import pytest
 from redis.exceptions import RedisError
 
-from src.tools.stream import xack, xadd, xdel, xgroup_create, xrange, xreadgroup
+from src.tools.stream import (
+    xack,
+    xadd,
+    xdel,
+    xgroup_create,
+    xgroup_destroy,
+    xrange,
+    xreadgroup,
+)
 
 
 class TestStreamOperations:
@@ -211,6 +219,44 @@ class TestStreamOperations:
         ) == result
 
     @pytest.mark.asyncio
+    async def test_xgroup_destroy_success(self, mock_redis_connection_manager):
+        """Test successful consumer group destroy."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xgroup_destroy.return_value = 1
+
+        result = await xgroup_destroy("test_stream", "workers")
+
+        mock_redis.xgroup_destroy.assert_called_once_with("test_stream", "workers")
+        assert (
+            result
+            == "Successfully destroyed consumer group 'workers' on stream 'test_stream'"
+        )
+
+    @pytest.mark.asyncio
+    async def test_xgroup_destroy_group_not_found(self, mock_redis_connection_manager):
+        """Test consumer group destroy when group does not exist."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xgroup_destroy.return_value = 0
+
+        result = await xgroup_destroy("test_stream", "workers")
+
+        mock_redis.xgroup_destroy.assert_called_once_with("test_stream", "workers")
+        assert result == "Consumer group 'workers' not found on stream 'test_stream'"
+
+    @pytest.mark.asyncio
+    async def test_xgroup_destroy_redis_error(self, mock_redis_connection_manager):
+        """Test consumer group destroy with Redis error."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xgroup_destroy.side_effect = RedisError("NOGROUP No such key")
+
+        result = await xgroup_destroy("test_stream", "workers")
+
+        assert (
+            "Error destroying consumer group 'workers' on stream 'test_stream': "
+            "NOGROUP No such key"
+        ) == result
+
+    @pytest.mark.asyncio
     async def test_xreadgroup_success(self, mock_redis_connection_manager):
         """Test successful consumer-group read."""
         mock_redis = mock_redis_connection_manager
@@ -256,6 +302,55 @@ class TestStreamOperations:
             block=1000,
         )
         assert result == str(mock_entries)
+
+    @pytest.mark.asyncio
+    async def test_xreadgroup_count_validation(self, mock_redis_connection_manager):
+        """Test consumer-group read validates count > 0."""
+        mock_redis = mock_redis_connection_manager
+
+        result = await xreadgroup("test_stream", "workers", "consumer-1", count=0)
+
+        mock_redis.xreadgroup.assert_not_called()
+        assert result == "count must be greater than 0"
+
+    @pytest.mark.asyncio
+    async def test_xreadgroup_block_ms_negative_validation(
+        self, mock_redis_connection_manager
+    ):
+        """Test consumer-group read rejects negative block_ms values."""
+        mock_redis = mock_redis_connection_manager
+
+        result = await xreadgroup("test_stream", "workers", "consumer-1", block_ms=-1)
+
+        mock_redis.xreadgroup.assert_not_called()
+        assert result == "block_ms must be greater than or equal to 0"
+
+    @pytest.mark.asyncio
+    async def test_xreadgroup_block_ms_zero_validation(
+        self, mock_redis_connection_manager
+    ):
+        """Test consumer-group read rejects block_ms=0."""
+        mock_redis = mock_redis_connection_manager
+
+        result = await xreadgroup("test_stream", "workers", "consumer-1", block_ms=0)
+
+        mock_redis.xreadgroup.assert_not_called()
+        assert result == (
+            "block_ms=0 is not allowed; use None for a non-blocking read or a "
+            "positive timeout in milliseconds"
+        )
+
+    @pytest.mark.asyncio
+    async def test_xreadgroup_block_ms_upper_bound_validation(
+        self, mock_redis_connection_manager
+    ):
+        """Test consumer-group read rejects excessively large block_ms values."""
+        mock_redis = mock_redis_connection_manager
+
+        result = await xreadgroup("test_stream", "workers", "consumer-1", block_ms=300000)
+
+        mock_redis.xreadgroup.assert_not_called()
+        assert result == "block_ms must be less than or equal to 5000 milliseconds"
 
     @pytest.mark.asyncio
     async def test_xreadgroup_empty_result(self, mock_redis_connection_manager):
@@ -477,6 +572,11 @@ class TestStreamOperations:
         assert xgroup_create_params == ["key", "group_name", "start_id", "mkstream"]
         assert xgroup_create_sig.parameters["start_id"].default == "$"
         assert xgroup_create_sig.parameters["mkstream"].default is True
+
+        # Test xgroup_destroy function signature
+        xgroup_destroy_sig = inspect.signature(xgroup_destroy)
+        xgroup_destroy_params = list(xgroup_destroy_sig.parameters.keys())
+        assert xgroup_destroy_params == ["key", "group_name"]
 
         # Test xreadgroup function signature
         xreadgroup_sig = inspect.signature(xreadgroup)
