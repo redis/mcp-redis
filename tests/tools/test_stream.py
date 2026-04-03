@@ -323,7 +323,7 @@ class TestStreamOperations:
         result = await xreadgroup("test_stream", "workers", "consumer-1", block_ms=-1)
 
         mock_redis.xreadgroup.assert_not_called()
-        assert result == "block_ms must be greater than or equal to 0"
+        assert result == "block_ms must be greater than 0 milliseconds when provided"
 
     @pytest.mark.asyncio
     async def test_xreadgroup_block_ms_zero_validation(
@@ -365,21 +365,6 @@ class TestStreamOperations:
         assert (
             result
             == "No entries available for consumer 'consumer-1' in group 'workers' on stream 'test_stream'"
-        )
-
-    @pytest.mark.asyncio
-    async def test_xreadgroup_rejects_zero_block_ms(
-        self, mock_redis_connection_manager
-    ):
-        """Test that block_ms=0 is rejected to avoid indefinite blocking."""
-        mock_redis = mock_redis_connection_manager
-
-        result = await xreadgroup("test_stream", "workers", "consumer-1", block_ms=0)
-
-        mock_redis.xreadgroup.assert_not_called()
-        assert result == (
-            "block_ms=0 is not allowed; use None for a non-blocking read or a "
-            "positive timeout in milliseconds"
         )
 
     @pytest.mark.asyncio

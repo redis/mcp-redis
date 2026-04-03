@@ -154,7 +154,7 @@ async def xreadgroup(
     if block_ms == 0:
         return "block_ms=0 is not allowed; use None for a non-blocking read or a positive timeout in milliseconds"
     if block_ms is not None and block_ms < 0:
-        return "block_ms must be greater than or equal to 0"
+        return "block_ms must be greater than 0 milliseconds when provided"
     if block_ms is not None and block_ms > 5000:
         return "block_ms must be less than or equal to 5000 milliseconds"
 
