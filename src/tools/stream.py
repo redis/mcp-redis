@@ -122,9 +122,7 @@ async def xgroup_destroy(key: str, group_name: str) -> str:
             else f"Consumer group '{group_name}' not found on stream '{key}'"
         )
     except RedisError as e:
-        return (
-            f"Error destroying consumer group '{group_name}' on stream '{key}': {str(e)}"
-        )
+        return f"Error destroying consumer group '{group_name}' on stream '{key}': {str(e)}"
 
 
 @mcp.tool()

@@ -347,7 +347,9 @@ class TestStreamOperations:
         """Test consumer-group read rejects excessively large block_ms values."""
         mock_redis = mock_redis_connection_manager
 
-        result = await xreadgroup("test_stream", "workers", "consumer-1", block_ms=300000)
+        result = await xreadgroup(
+            "test_stream", "workers", "consumer-1", block_ms=300000
+        )
 
         mock_redis.xreadgroup.assert_not_called()
         assert result == "block_ms must be less than or equal to 5000 milliseconds"
