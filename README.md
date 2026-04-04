@@ -61,7 +61,7 @@ The Redis MCP Server is a **natural language interface** designed for agentic ap
 - **Search & Filtering**: Supports efficient data retrieval and searching in Redis.
 - **Scalable & Lightweight**: Designed for **high-performance** data operations.
 - **EntraID Authentication**: Native support for Azure Active Directory authentication with Azure Managed Redis.
-- The Redis MCP Server supports the `stdio` [transport](https://modelcontextprotocol.io/docs/concepts/transports#standard-input%2Foutput-stdio). Support to the `stremable-http` transport will be added in the future.
+- **Multiple Transport Protocols**: Supports `stdio`, `http`, `sse`, and `streamable-http` [transports](https://modelcontextprotocol.io/docs/concepts/transports) for different deployment scenarios. The `http` CLI option runs the MCP Streamable HTTP endpoint at `/mcp`.
 
 ## Tools
 
@@ -259,8 +259,60 @@ If you'd like to build your own image, the Redis MCP Server provides a Dockerfil
 docker build -t mcp-redis .
 ```
 
-Finally, configure the client to create the container at start-up. An example for Claude Desktop is provided below. Edit the `claude_desktop_config.json` and add:
+#### Docker Transport Protocol Support
 
+The Docker image supports multiple transport protocols through environment variables:
+
+```bash
+# stdio transport (default)
+docker run --rm \
+  -e REDIS_HOST=redis \
+  -e REDIS_PORT=6379 \
+  mcp-redis
+
+# Sentinel-backed Redis connection
+docker run --rm -p 8000:8000 \
+  -e TRANSPORT=streamable-http \
+  -e HTTP_HOST=0.0.0.0 \
+  -e HTTP_PORT=8000 \
+  -e REDIS_TOPOLOGY=sentinel \
+  -e REDIS_SENTINEL_MASTER_NAME=mymaster \
+  -e REDIS_SENTINEL_NODES=sentinel-1:26379,sentinel-2:26379 \
+  mcp-redis
+
+# HTTP transport (served at /mcp)
+docker run --rm -p 8000:8000 \
+  -e TRANSPORT=http \
+  -e HTTP_HOST=0.0.0.0 \
+  -e HTTP_PORT=8000 \
+  -e REDIS_HOST=redis \
+  -e REDIS_PORT=6379 \
+  mcp-redis
+
+# SSE transport
+docker run --rm -p 8000:8000 \
+  -e TRANSPORT=sse \
+  -e HTTP_HOST=0.0.0.0 \
+  -e HTTP_PORT=8000 \
+  -e REDIS_HOST=redis \
+  -e REDIS_PORT=6379 \
+  mcp-redis
+
+# streamable-http transport
+docker run --rm -p 8000:8000 \
+  -e TRANSPORT=streamable-http \
+  -e HTTP_HOST=0.0.0.0 \
+  -e HTTP_PORT=8000 \
+  -e REDIS_HOST=redis \
+  -e REDIS_PORT=6379 \
+  mcp-redis
+```
+
+#### Claude Desktop Configuration
+
+Configure the client to create the container at start-up. Edit the `claude_desktop_config.json` and add:
+
+**Basic Redis connection (stdio transport):**
 ```json
 {
   "mcpServers": {
@@ -281,12 +333,86 @@ Finally, configure the client to create the container at start-up. An example fo
 }
 ```
 
+**HTTP transport for web applications (`/mcp`):**
+```json
+{
+  "mcpServers": {
+    "redis": {
+      "command": "docker",
+      "args": ["run",
+                "--rm",
+                "--name",
+                "redis-mcp-server-http",
+                "-p", "8000:8000",
+                "-e", "TRANSPORT=http",
+                "-e", "HTTP_HOST=0.0.0.0",
+                "-e", "HTTP_PORT=8000",
+                "-e", "REDIS_HOST=<redis_hostname>",
+                "-e", "REDIS_PORT=<redis_port>",
+                "-e", "REDIS_USERNAME=<redis_username>",
+                "-e", "REDIS_PWD=<redis_password>",
+                "mcp-redis"]
+    }
+  }
+}
+```
+
 To use the official [Redis MCP Docker](https://hub.docker.com/r/mcp/redis) image, just replace your image name (`mcp-redis` in the example above) with `mcp/redis`.
 
 ## Configuration
 
 The Redis MCP Server can be configured in two ways: via command line arguments or via environment variables.
 The precedence is: command line arguments > environment variables > default values.
+
+### Transport Protocols
+
+The Redis MCP Server supports multiple transport protocols for different deployment scenarios:
+
+- **stdio** (default): Standard input/output transport, recommended for most MCP clients
+- **http**: Streamable HTTP transport for web-based integrations and microservices, served at `/mcp`
+- **sse**: Server-Sent Events transport for real-time web applications
+- **streamable-http**: Equivalent to `http`, provided as an explicit FastMCP transport name
+
+#### Transport Protocol Selection
+
+```bash
+# Use stdio transport (default)
+redis-mcp-server --url redis://localhost:6379/0
+
+# Use HTTP transport
+redis-mcp-server --transport http --http-host 0.0.0.0 --http-port 8000 --url redis://localhost:6379/0
+
+# Use SSE transport
+redis-mcp-server --transport sse --http-host 0.0.0.0 --http-port 8000 --url redis://localhost:6379/0
+
+# Use streamable-http transport
+redis-mcp-server --transport streamable-http --http-host 0.0.0.0 --http-port 8000 --url redis://localhost:6379/0
+```
+
+#### Transport Use Cases
+
+- **stdio**: Best for local development, CLI tools, and traditional MCP clients
+- **http**: Ideal for web applications, REST APIs, and service-oriented architectures
+- **sse**: Perfect for real-time updates, live dashboards, and event-driven applications
+- **streamable-http**: Same transport as `http`, useful when you want to use the underlying FastMCP naming explicitly
+
+#### HTTP/SSE Transport Configuration
+
+When using HTTP, SSE, or streamable-http transports, you can customize:
+
+- `--http-host`: Host address for the HTTP server (default: 127.0.0.1)
+- `--http-port`: Port for the HTTP server (default: 8000)
+
+The CLI also reads `TRANSPORT`, `HTTP_HOST`, and `HTTP_PORT` environment variables. For FastMCP-native deployments, `FASTMCP_HOST` and `FASTMCP_PORT` are also supported.
+
+Examples:
+```bash
+# Custom host and port for HTTP transport
+redis-mcp-server --transport http --http-host 192.168.1.100 --http-port 9000 --url redis://localhost:6379/0
+
+# Expose HTTP server on all interfaces
+redis-mcp-server --transport http --http-host 0.0.0.0 --http-port 8080 --url redis://localhost:6379/0
+```
 
 ### Redis ACL
 
@@ -323,6 +449,7 @@ uvx --from redis-mcp-server@latest redis-mcp-server --help
 
 **Available CLI Options:**
 - `--url` - Redis connection URI (redis://user:pass@host:port/db)
+- `--topology` - Redis topology: `standalone`, `sentinel`, or `cluster`
 - `--host` - Redis hostname (default: 127.0.0.1)
 - `--port` - Redis port (default: 6379)
 - `--db` - Redis database number (default: 0)
@@ -334,7 +461,30 @@ uvx --from redis-mcp-server@latest redis-mcp-server --help
 - `--ssl-certfile` - Path to SSL certificate file
 - `--ssl-cert-reqs` - SSL certificate requirements (default: required)
 - `--ssl-ca-certs` - Path to CA certificates file
-- `--cluster-mode` - Enable Redis cluster mode
+- `--cluster-mode` - Enable Redis cluster mode (legacy compatibility flag)
+- `--sentinel-master-name` - Sentinel master name
+- `--sentinel-nodes` - Comma-separated Sentinel nodes (`host:port,host:port`)
+- `--sentinel-host` / `--sentinel-port` - Single Sentinel endpoint alternative
+- `--sentinel-username` / `--sentinel-password` - Optional Sentinel authentication
+
+**Topology examples:**
+```bash
+# Standalone (default)
+uvx --from redis-mcp-server@latest redis-mcp-server \
+  --host localhost --port 6379
+
+# Sentinel: the server connects to the Redis master discovered through Sentinel
+uvx --from redis-mcp-server@latest redis-mcp-server \
+  --topology sentinel \
+  --sentinel-master-name mymaster \
+  --sentinel-nodes sentinel-1:26379,sentinel-2:26379
+
+# Cluster
+uvx --from redis-mcp-server@latest redis-mcp-server \
+  --topology cluster \
+  --host redis-cluster.example.com \
+  --port 6379
+```
 
 ### Configuration via Environment Variables
 
@@ -345,6 +495,7 @@ If desired, you can use environment variables. Defaults are provided for all var
 | `REDIS_HOST`         | Redis IP or hostname                                      | `"127.0.0.1"` |
 | `REDIS_PORT`         | Redis port                                                | `6379`        |
 | `REDIS_DB`           | Database                                                  | 0             |
+| `REDIS_TOPOLOGY`     | Redis topology: `standalone`, `sentinel`, `cluster`      | `"standalone"`|
 | `REDIS_USERNAME`     | Default database username                                 | `"default"`   |
 | `REDIS_PWD`          | Default database password                                 | ""            |
 | `REDIS_SSL`          | Enables or disables SSL/TLS                               | `False`       |
@@ -353,7 +504,13 @@ If desired, you can use environment variables. Defaults are provided for all var
 | `REDIS_SSL_CERTFILE` | Client's certificate file for client authentication       | None          |
 | `REDIS_SSL_CERT_REQS`| Whether the client should verify the server's certificate | `"required"`  |
 | `REDIS_SSL_CA_CERTS` | Path to the trusted CA certificates file                  | None          |
-| `REDIS_CLUSTER_MODE` | Enable Redis Cluster mode                                 | `False`       |
+| `REDIS_CLUSTER_MODE` | Enable Redis Cluster mode (legacy compatibility flag)     | `False`       |
+| `REDIS_SENTINEL_MASTER_NAME` | Sentinel master name                             | None          |
+| `REDIS_SENTINEL_NODES` | Comma-separated Sentinel nodes (`host:port,...`)       | None          |
+| `REDIS_SENTINEL_USERNAME` | Sentinel username if Sentinel requires auth         | None          |
+| `REDIS_SENTINEL_PWD` | Sentinel password if Sentinel requires auth               | None          |
+
+Sentinel mode uses Sentinel only for master discovery. Once discovered, the MCP server executes commands against the Redis master instead of the Sentinel endpoint itself.
 
 
 ### EntraID Authentication for Azure Managed Redis
@@ -557,7 +714,7 @@ You can also configure the Redis MCP Server in Augment manually by importing the
 
 The simplest way to configure MCP clients is using `uvx`. Add the following JSON to your `claude_desktop_config.json`, remember to provide the full path to `uvx`.
 
-**Basic Redis connection:**
+**Basic Redis connection (stdio transport):**
 ```json
 {
   "mcpServers": {
@@ -567,6 +724,46 @@ The simplest way to configure MCP clients is using `uvx`. Add the following JSON
         "args": [
             "--from", "redis-mcp-server@latest",
             "redis-mcp-server",
+            "--url", "redis://localhost:6379/0"
+        ]
+    }
+  }
+}
+```
+
+**HTTP transport for web applications (`/mcp`):**
+```json
+{
+  "mcpServers": {
+    "redis-mcp-server": {
+        "type": "stdio",
+        "command": "/Users/mortensi/.local/bin/uvx",
+        "args": [
+            "--from", "redis-mcp-server@latest",
+            "redis-mcp-server",
+            "--transport", "http",
+            "--http-host", "127.0.0.1",
+            "--http-port", "8000",
+            "--url", "redis://localhost:6379/0"
+        ]
+    }
+  }
+}
+```
+
+**SSE transport for real-time applications:**
+```json
+{
+  "mcpServers": {
+    "redis-mcp-server": {
+        "type": "stdio",
+        "command": "/Users/mortensi/.local/bin/uvx",
+        "args": [
+            "--from", "redis-mcp-server@latest",
+            "redis-mcp-server",
+            "--transport", "sse",
+            "--http-host", "127.0.0.1",
+            "--http-port", "8000",
             "--url", "redis://localhost:6379/0"
         ]
     }
