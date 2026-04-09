@@ -168,40 +168,49 @@
   
       - name: ⚙️ Override version in pyproject.toml
         if: (github.event_name == 'workflow_dispatch' && github.event.inputs.version) || github.event_name == 'release'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           # Determine the target version
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TARGET_VERSION="${{ github.event.inputs.version }}"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            TARGET_VERSION="$INPUT_VERSION"
             echo "Overriding version from manual trigger: $TARGET_VERSION"
-          elif [[ "${{ github.event_name }}" == "release" ]]; then
-            RELEASE_TAG="${{ github.event.release.tag_name }}"
+          elif [[ "$EVENT_NAME" == "release" ]]; then
             TARGET_VERSION=$(echo "$RELEASE_TAG" | sed 's/^v//')
             echo "Overriding version from release tag: $TARGET_VERSION (tag: $RELEASE_TAG)"
           fi
-            
+
+          # Validate version format (semver)
+          if [[ ! "$TARGET_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "Invalid version format: $TARGET_VERSION"
+            exit 1
+          fi
+
           # Get current version for comparison
           CURRENT_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           echo "Current version in pyproject.toml: $CURRENT_VERSION"
-            
+
           # Check if override is needed
           if [[ "$CURRENT_VERSION" == "$TARGET_VERSION" ]]; then
             echo "Version already matches target: $TARGET_VERSION"
           else
             echo "Version override needed: $CURRENT_VERSION → $TARGET_VERSION"
-            
+
             # Update version in pyproject.toml
             sed -i "s/^version = \".*\"/version = \"$TARGET_VERSION\"/" pyproject.toml
-            
+
             # Verify the change
             NEW_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
             echo "Updated version in pyproject.toml: $NEW_VERSION"
-            
+
             # Validate the change was successful
             if [[ "$NEW_VERSION" != "$TARGET_VERSION" ]]; then
               echo "Version override failed! Expected: $TARGET_VERSION, Got: $NEW_VERSION"
               exit 1
             fi
-            
+
             echo "Version successfully changed: $CURRENT_VERSION → $NEW_VERSION"
           fi
   
@@ -229,12 +238,14 @@
   
       - name: ⚙️ Dry run - Package ready for publishing
         if: ${{ inputs.dry_run }}
+        env:
+          INPUT_ENVIRONMENT: ${{ github.event.inputs.environment || 'pypi' }}
         run: |
           echo "🔍 DRY RUN MODE - Package built successfully but not published"
           echo "📦 Built packages:"
           ls -la dist/
           echo ""
-          echo "✅ Package is ready for publishing to ${{ github.event.inputs.environment || 'pypi' }}"
+          echo "✅ Package is ready for publishing to $INPUT_ENVIRONMENT"
   
       - name: ⚙️ Upload build artifacts
         uses: actions/upload-artifact@v7
@@ -261,17 +272,26 @@
         uses: actions/checkout@v6
 
       - name: ⚙️ Update server.json version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           # Determine the target version
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TARGET_VERSION="${{ github.event.inputs.version }}"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            TARGET_VERSION="$INPUT_VERSION"
             echo "Using version from manual trigger: $TARGET_VERSION"
-          elif [[ "${{ github.event_name }}" == "release" ]]; then
-            RELEASE_TAG="${{ github.event.release.tag_name }}"
+          elif [[ "$EVENT_NAME" == "release" ]]; then
             TARGET_VERSION=$(echo "$RELEASE_TAG" | sed 's/^v//')
             echo "Using version from release tag: $TARGET_VERSION (tag: $RELEASE_TAG)"
           else
-            echo "Error: Unexpected event type: ${{ github.event_name }}"
+            echo "Error: Unexpected event type: $EVENT_NAME"
+            exit 1
+          fi
+
+          # Validate version format (semver)
+          if [[ ! "$TARGET_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "Invalid version format: $TARGET_VERSION"
             exit 1
           fi
 
@@ -327,27 +347,35 @@
       if: ${{ always() && !cancelled() && needs.build-and-publish.result == 'success' }}
       steps:
       - name: ⚙️ Success notification
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          INPUT_VERSION: ${{ github.event.inputs.version || needs.validate-release.outputs.version }}
+          INPUT_ENVIRONMENT: ${{ github.event.inputs.environment || 'pypi' }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
         run: |
-          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
-            echo "🔍 DRY RUN COMPLETED - Redis MCP Server v${{ github.event.inputs.version || needs.validate-release.outputs.version }} ready for release!"
+          if [[ "$DRY_RUN" == "true" ]]; then
+            echo "🔍 DRY RUN COMPLETED - Redis MCP Server v${INPUT_VERSION} ready for release!"
             echo "📦 Package built successfully but not published"
-            echo "🎯 Target environment: ${{ github.event.inputs.environment || 'pypi' }}"
+            echo "🎯 Target environment: $INPUT_ENVIRONMENT"
           else
-            echo "🎉 Successfully released Redis MCP Server v${{ github.event.inputs.version || needs.validate-release.outputs.version }}!"
+            echo "🎉 Successfully released Redis MCP Server v${INPUT_VERSION}!"
             echo ""
             echo "📦 PyPI Package:"
-            if [[ "${{ github.event.inputs.environment }}" == "testpypi" ]]; then
-              echo "   https://test.pypi.org/project/redis-mcp-server/${{ github.event.inputs.version || needs.validate-release.outputs.version }}/"
+            if [[ "$INPUT_ENVIRONMENT" == "testpypi" ]]; then
+              echo "   https://test.pypi.org/project/redis-mcp-server/${INPUT_VERSION}/"
             else
-              echo "   https://pypi.org/project/redis-mcp-server/${{ github.event.inputs.version || needs.validate-release.outputs.version }}/"
+              echo "   https://pypi.org/project/redis-mcp-server/${INPUT_VERSION}/"
             fi
             echo ""
             echo "🔌 MCP Registry:"
             echo "   https://registry.modelcontextprotocol.io/v0/servers?search=redis"
             echo ""
-            if [[ "${{ github.event_name }}" == "release" ]]; then
-              echo "🏷️ Release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+            if [[ "$EVENT_NAME" == "release" ]]; then
+              echo "🏷️ Release: https://github.com/${REPO}/releases/tag/${REF_NAME}"
             else
-              echo "🚀 Manual release triggered by: ${{ github.actor }}"
+              echo "🚀 Manual release triggered by: $ACTOR"
             fi
           fi
