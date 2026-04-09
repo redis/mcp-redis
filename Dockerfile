@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked
 
 # Support environment variable configuration for transport and bind address.
-ENV TRANSPORT=streamable-http
+ENV TRANSPORT=stdio
 ENV HTTP_HOST=0.0.0.0
 ENV HTTP_PORT=8000
 
