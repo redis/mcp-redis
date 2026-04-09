@@ -264,9 +264,10 @@ docker build -t mcp-redis .
 The Docker image supports multiple transport protocols through environment variables:
 
 ```bash
-# stdio transport (default) - for Claude Desktop and MCP clients
-# stdio 传输协议（默认）- 用于 Claude Desktop 和 MCP 客户端
+# stdio transport - for Claude Desktop and MCP clients
+# stdio 传输协议 - 用于 Claude Desktop 和 MCP 客户端
 docker run --rm -i \
+  -e TRANSPORT=stdio \
   -e REDIS_HOST=redis \
   -e REDIS_PORT=6379 \
   mcp/redis
@@ -317,7 +318,7 @@ docker run --rm -p 8000:8000 \
 
 Configure the client to create the container at start-up. Edit the `claude_desktop_config.json` and add:
 
-**Basic Redis connection (stdio transport - default):**
+**Basic Redis connection (stdio transport):**
 ```json
 {
   "mcpServers": {
@@ -328,6 +329,7 @@ Configure the client to create the container at start-up. Edit the `claude_deskt
                 "--name",
                 "redis-mcp-server",
                 "-i",
+                "-e", "TRANSPORT=stdio",
                 "-e", "REDIS_HOST=<redis_hostname>",
                 "-e", "REDIS_PORT=<redis_port>",
                 "-e", "REDIS_USERNAME=<redis_username>",

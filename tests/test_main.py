@@ -141,7 +141,9 @@ class TestCLI:
         assert call_args["username"] == "testuser"
         assert call_args["password"] == "testpass"
         assert call_args["ssl"] is True
-        assert call_args["topology"] is None
+        # topology should not be in config when --topology is not explicitly passed,
+        # allowing it to be determined from environment or defaults
+        assert "topology" not in call_args
 
     @patch("src.main.set_redis_config_from_cli")
     @patch("src.main.RedisMCPServer")
@@ -188,7 +190,9 @@ class TestCLI:
         assert result.exit_code == 0
         call_args = mock_set_config.call_args[0][0]
         assert call_args["cluster_mode"] is True
-        assert call_args["topology"] is None
+        # topology should NOT be in config when --cluster-mode is passed without
+        # --topology, so the after-loop guard can properly set it to "cluster"
+        assert "topology" not in call_args
 
     @patch("src.main.set_redis_config_from_cli")
     @patch("src.main.RedisMCPServer")
