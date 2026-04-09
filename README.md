@@ -264,55 +264,60 @@ docker build -t mcp-redis .
 The Docker image supports multiple transport protocols through environment variables:
 
 ```bash
-# stdio transport (default)
-docker run --rm \
+# stdio transport (default) - for Claude Desktop and MCP clients
+# stdio 传输协议（默认）- 用于 Claude Desktop 和 MCP 客户端
+docker run --rm -i \
   -e REDIS_HOST=redis \
   -e REDIS_PORT=6379 \
-  mcp-redis
+  mcp/redis
 
-# Sentinel-backed Redis connection
-docker run --rm -p 8000:8000 \
-  -e TRANSPORT=streamable-http \
-  -e HTTP_HOST=0.0.0.0 \
-  -e HTTP_PORT=8000 \
-  -e REDIS_TOPOLOGY=sentinel \
-  -e REDIS_SENTINEL_MASTER_NAME=mymaster \
-  -e REDIS_SENTINEL_NODES=sentinel-1:26379,sentinel-2:26379 \
-  mcp-redis
-
-# HTTP transport (served at /mcp)
+# HTTP transport for web applications (served at /mcp)
+# HTTP 传输协议用于 Web 应用（在 /mcp 端点提供服务）
 docker run --rm -p 8000:8000 \
   -e TRANSPORT=http \
   -e HTTP_HOST=0.0.0.0 \
   -e HTTP_PORT=8000 \
   -e REDIS_HOST=redis \
   -e REDIS_PORT=6379 \
-  mcp-redis
+  mcp/redis
 
-# SSE transport
+# SSE transport for real-time applications
+# SSE 传输协议用于实时应用
 docker run --rm -p 8000:8000 \
   -e TRANSPORT=sse \
   -e HTTP_HOST=0.0.0.0 \
   -e HTTP_PORT=8000 \
   -e REDIS_HOST=redis \
   -e REDIS_PORT=6379 \
-  mcp-redis
+  mcp/redis
 
-# streamable-http transport
+# Streamable HTTP transport
+# Streamable HTTP 传输协议
 docker run --rm -p 8000:8000 \
   -e TRANSPORT=streamable-http \
   -e HTTP_HOST=0.0.0.0 \
   -e HTTP_PORT=8000 \
   -e REDIS_HOST=redis \
   -e REDIS_PORT=6379 \
-  mcp-redis
+  mcp/redis
+
+# Sentinel-backed Redis connection with HTTP transport
+# 使用 HTTP 传输协议的 Sentinel 模式 Redis 连接
+docker run --rm -p 8000:8000 \
+  -e TRANSPORT=http \
+  -e HTTP_HOST=0.0.0.0 \
+  -e HTTP_PORT=8000 \
+  -e REDIS_TOPOLOGY=sentinel \
+  -e REDIS_SENTINEL_MASTER_NAME=mymaster \
+  -e REDIS_SENTINEL_NODES=sentinel-1:26379,sentinel-2:26379 \
+  mcp/redis
 ```
 
 #### Claude Desktop Configuration
 
 Configure the client to create the container at start-up. Edit the `claude_desktop_config.json` and add:
 
-**Basic Redis connection (stdio transport):**
+**Basic Redis connection (stdio transport - default):**
 ```json
 {
   "mcpServers": {
@@ -327,7 +332,7 @@ Configure the client to create the container at start-up. Edit the `claude_deskt
                 "-e", "REDIS_PORT=<redis_port>",
                 "-e", "REDIS_USERNAME=<redis_username>",
                 "-e", "REDIS_PWD=<redis_password>",
-                "mcp-redis"]
+                "mcp/redis"]
     }
   }
 }
@@ -351,13 +356,37 @@ Configure the client to create the container at start-up. Edit the `claude_deskt
                 "-e", "REDIS_PORT=<redis_port>",
                 "-e", "REDIS_USERNAME=<redis_username>",
                 "-e", "REDIS_PWD=<redis_password>",
-                "mcp-redis"]
+                "mcp/redis"]
     }
   }
 }
 ```
 
-To use the official [Redis MCP Docker](https://hub.docker.com/r/mcp/redis) image, just replace your image name (`mcp-redis` in the example above) with `mcp/redis`.
+**SSE transport for real-time applications:**
+```json
+{
+  "mcpServers": {
+    "redis": {
+      "command": "docker",
+      "args": ["run",
+                "--rm",
+                "--name",
+                "redis-mcp-server-sse",
+                "-p", "8000:8000",
+                "-e", "TRANSPORT=sse",
+                "-e", "HTTP_HOST=0.0.0.0",
+                "-e", "HTTP_PORT=8000",
+                "-e", "REDIS_HOST=<redis_hostname>",
+                "-e", "REDIS_PORT=<redis_port>",
+                "-e", "REDIS_USERNAME=<redis_username>",
+                "-e", "REDIS_PWD=<redis_password>",
+                "mcp/redis"]
+    }
+  }
+}
+```
+
+To use the official [Redis MCP Docker](https://hub.docker.com/r/mcp/redis) image, just use `mcp/redis` as the image name in the examples above.
 
 ## Configuration
 
