@@ -70,17 +70,28 @@ class RedisMCPServer:
 )
 @click.option("--host", default="127.0.0.1", envvar="REDIS_HOST", help="Redis host")
 @click.option("--port", default=6379, envvar="REDIS_PORT", type=int, help="Redis port")
-@click.option("--db", default=0, envvar="REDIS_DB", type=int, help="Redis database number")
+@click.option(
+    "--db", default=0, envvar="REDIS_DB", type=int, help="Redis database number"
+)
 @click.option("--username", envvar="REDIS_USERNAME", help="Redis username")
 @click.option("--password", envvar="REDIS_PWD", help="Redis password")
 @click.option("--ssl", is_flag=True, envvar="REDIS_SSL", help="Use SSL connection")
-@click.option("--ssl-ca-path", envvar="REDIS_SSL_CA_PATH", help="Path to CA certificate file")
-@click.option("--ssl-keyfile", envvar="REDIS_SSL_KEYFILE", help="Path to SSL key file")
-@click.option("--ssl-certfile", envvar="REDIS_SSL_CERTFILE", help="Path to SSL certificate file")
 @click.option(
-    "--ssl-cert-reqs", default="required", envvar="REDIS_SSL_CERT_REQS", help="SSL certificate requirements"
+    "--ssl-ca-path", envvar="REDIS_SSL_CA_PATH", help="Path to CA certificate file"
 )
-@click.option("--ssl-ca-certs", envvar="REDIS_SSL_CA_CERTS", help="Path to CA certificates file")
+@click.option("--ssl-keyfile", envvar="REDIS_SSL_KEYFILE", help="Path to SSL key file")
+@click.option(
+    "--ssl-certfile", envvar="REDIS_SSL_CERTFILE", help="Path to SSL certificate file"
+)
+@click.option(
+    "--ssl-cert-reqs",
+    default="required",
+    envvar="REDIS_SSL_CERT_REQS",
+    help="SSL certificate requirements",
+)
+@click.option(
+    "--ssl-ca-certs", envvar="REDIS_SSL_CA_CERTS", help="Path to CA certificates file"
+)
 @click.option(
     "--topology",
     type=click.Choice(["standalone", "sentinel", "cluster"]),
@@ -225,12 +236,17 @@ def cli(
             "port": port,
             "db": db,
             "ssl": ssl,
-            "topology": topology,
             "cluster_mode": cluster_mode,
             "sentinel_master_name": sentinel_master_name,
             "sentinel_username": sentinel_username,
             "sentinel_password": sentinel_password,
         }
+
+        # Only include topology in config when explicitly set, so the after-loop
+        # guard in set_redis_config_from_cli can properly handle --cluster-mode
+        # without --topology
+        if topology is not None:
+            config["topology"] = topology
 
         if sentinel_nodes:
             config["sentinel_nodes"] = sentinel_nodes
