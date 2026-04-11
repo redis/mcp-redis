@@ -219,6 +219,8 @@ class TestMCPServerIntegration:
             "scan_all_keys",
             "search_redis_documents",
             "publish",
+            "psubscribe",
+            "read_messages",
             "subscribe",
             "unsubscribe",
             "get_indexes",
@@ -247,9 +249,9 @@ class TestMCPServerIntegration:
             "lrem",
         ]
         for tool in tool_names:
-            assert tool in expected_tools, (
-                f"Expected tool '{tool}' not found in {tool_names}"
-            )
+            assert (
+                tool in expected_tools
+            ), f"Expected tool '{tool}' not found in {tool_names}"
 
     def test_server_tool_count_and_names(self, server_process):
         """Test that the server registers the correct number of tools with expected names."""
@@ -275,10 +277,10 @@ class TestMCPServerIntegration:
         tool_names = [tool["name"] for tool in tools]
 
         # Expected tool count (based on @mcp.tool() decorators in codebase)
-        expected_tool_count = 51
-        assert len(tools) == expected_tool_count, (
-            f"Expected {expected_tool_count} tools, but got {len(tools)}"
-        )
+        expected_tool_count = 53
+        assert (
+            len(tools) == expected_tool_count
+        ), f"Expected {expected_tool_count} tools, but got {len(tools)}"
 
         # Expected tool names (alphabetically sorted for easier verification)
         expected_tools = [
@@ -308,6 +310,8 @@ class TestMCPServerIntegration:
             "lpush",
             "lrange",
             "publish",
+            "psubscribe",
+            "read_messages",
             "rename",
             "rpop",
             "rpush",
@@ -359,7 +363,13 @@ class TestMCPServerIntegration:
                 "xack",
             ],
             "json": ["json_get", "json_set", "json_del"],
-            "pub_sub": ["publish", "subscribe", "unsubscribe"],
+            "pub_sub": [
+                "publish",
+                "psubscribe",
+                "read_messages",
+                "subscribe",
+                "unsubscribe",
+            ],
             "server_mgmt": ["dbsize", "info", "client_list"],
             "misc": [
                 "delete",
@@ -383,9 +393,9 @@ class TestMCPServerIntegration:
 
         for category, category_tools in tool_categories.items():
             for tool in category_tools:
-                assert tool in tool_names, (
-                    f"Tool '{tool}' from category '{category}' not found in registered tools"
-                )
+                assert (
+                    tool in tool_names
+                ), f"Tool '{tool}' from category '{category}' not found in registered tools"
 
     def _initialize_server(self, server_process):
         """Helper to initialize the MCP server."""
