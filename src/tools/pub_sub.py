@@ -116,8 +116,10 @@ async def unsubscribe(subscription_id: str) -> Dict[str, Any]:
         A dictionary describing the closed subscription or an error message.
     """
     try:
-        result = SubscriptionManager.unsubscribe(subscription_id)
-        return result
+        return await asyncio.to_thread(
+            SubscriptionManager.unsubscribe,
+            subscription_id,
+        )
     except KeyError:
         return {"error": f"Subscription '{subscription_id}' was not found"}
     except RedisError as e:
