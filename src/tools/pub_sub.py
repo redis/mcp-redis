@@ -39,7 +39,11 @@ async def subscribe(channel: str) -> Dict[str, Any]:
     """
     try:
         r = RedisConnectionManager.get_connection()
-        subscription = SubscriptionManager.subscribe(r, channel)
+        subscription = await asyncio.to_thread(
+            SubscriptionManager.subscribe,
+            r,
+            channel,
+        )
         return subscription
     except RedisError as e:
         return {"error": f"Error subscribing to channel '{channel}': {str(e)}"}
@@ -57,7 +61,11 @@ async def psubscribe(pattern: str) -> Dict[str, Any]:
     """
     try:
         r = RedisConnectionManager.get_connection()
-        subscription = SubscriptionManager.psubscribe(r, pattern)
+        subscription = await asyncio.to_thread(
+            SubscriptionManager.psubscribe,
+            r,
+            pattern,
+        )
         return subscription
     except RedisError as e:
         return {

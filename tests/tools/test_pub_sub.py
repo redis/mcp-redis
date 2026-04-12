@@ -207,6 +207,62 @@ class TestPubSubOperations:
         }
 
     @pytest.mark.asyncio
+    async def test_subscribe_uses_asyncio_to_thread(
+        self, mock_redis_connection_manager
+    ):
+        """Test subscribe offloads blocking connection setup to a worker thread."""
+        mock_redis = mock_redis_connection_manager
+        expected = {
+            "status": "success",
+            "subscription_id": "sub-123",
+            "mode": "channel",
+            "targets": ["orders"],
+        }
+
+        with (
+            patch("src.tools.pub_sub.asyncio.to_thread") as mock_to_thread,
+            patch("src.tools.pub_sub.SubscriptionManager.subscribe") as mock_subscribe,
+        ):
+            mock_to_thread.return_value = expected
+
+            result = await subscribe("orders")
+
+            mock_to_thread.assert_awaited_once_with(
+                mock_subscribe,
+                mock_redis,
+                "orders",
+            )
+            assert result == expected
+
+    @pytest.mark.asyncio
+    async def test_psubscribe_uses_asyncio_to_thread(
+        self, mock_redis_connection_manager
+    ):
+        """Test psubscribe offloads blocking connection setup to a worker thread."""
+        mock_redis = mock_redis_connection_manager
+        expected = {
+            "status": "success",
+            "subscription_id": "sub-456",
+            "mode": "pattern",
+            "targets": ["orders:*"],
+        }
+
+        with (
+            patch("src.tools.pub_sub.asyncio.to_thread") as mock_to_thread,
+            patch("src.tools.pub_sub.SubscriptionManager.psubscribe") as mock_psub,
+        ):
+            mock_to_thread.return_value = expected
+
+            result = await psubscribe("orders:*")
+
+            mock_to_thread.assert_awaited_once_with(
+                mock_psub,
+                mock_redis,
+                "orders:*",
+            )
+            assert result == expected
+
+    @pytest.mark.asyncio
     async def test_read_messages_success(self, mock_redis_connection_manager):
         """Test reading messages from an active subscription."""
         mock_redis = mock_redis_connection_manager
