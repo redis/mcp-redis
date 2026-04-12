@@ -335,6 +335,26 @@ class TestPubSubOperations:
         }
 
     @pytest.mark.asyncio
+    async def test_read_messages_uses_asyncio_to_thread(self):
+        """Test read_messages offloads blocking polling to a worker thread."""
+        expected = {
+            "subscription_id": "sub-123",
+            "message_count": 0,
+            "messages": [],
+        }
+
+        with (
+            patch("src.tools.pub_sub.asyncio.to_thread") as mock_to_thread,
+            patch("src.tools.pub_sub.SubscriptionManager.read_messages") as mock_read,
+        ):
+            mock_to_thread.return_value = expected
+
+            result = await read_messages("sub-123", timeout_ms=250, max_messages=3)
+
+            mock_to_thread.assert_awaited_once_with(mock_read, "sub-123", 250, 3)
+            assert result == expected
+
+    @pytest.mark.asyncio
     async def test_unsubscribe_success(self, mock_redis_connection_manager):
         """Test successful channel unsubscribe operation."""
         mock_redis = mock_redis_connection_manager

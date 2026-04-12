@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Dict
 
 from redis.exceptions import RedisError
@@ -88,8 +89,11 @@ async def read_messages(
         return {"error": "max_messages must be less than or equal to 100"}
 
     try:
-        return SubscriptionManager.read_messages(
-            subscription_id, timeout_ms=timeout_ms, max_messages=max_messages
+        return await asyncio.to_thread(
+            SubscriptionManager.read_messages,
+            subscription_id,
+            timeout_ms,
+            max_messages,
         )
     except KeyError:
         return {"error": f"Subscription '{subscription_id}' was not found"}
