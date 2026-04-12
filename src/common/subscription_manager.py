@@ -19,7 +19,10 @@ def _decode_message_value(value: Any) -> Any:
     if isinstance(value, tuple):
         return [_decode_message_value(item) for item in value]
     if isinstance(value, dict):
-        return {key: _decode_message_value(item) for key, item in value.items()}
+        return {
+            _decode_message_value(key): _decode_message_value(item)
+            for key, item in value.items()
+        }
     return value
 
 
