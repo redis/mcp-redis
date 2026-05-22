@@ -5,7 +5,10 @@ from redis.exceptions import RedisError
 
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
-from src.common.subscription_manager import SubscriptionManager
+from src.common.subscription_manager import (
+    SubscriptionLimitExceededError,
+    SubscriptionManager,
+)
 
 
 @mcp.tool()
@@ -47,6 +50,8 @@ async def subscribe(channel: str) -> Dict[str, Any]:
         return subscription
     except RedisError as e:
         return {"error": f"Error subscribing to channel '{channel}': {str(e)}"}
+    except SubscriptionLimitExceededError as e:
+        return {"error": str(e)}
 
 
 @mcp.tool()
@@ -71,6 +76,8 @@ async def psubscribe(pattern: str) -> Dict[str, Any]:
         return {
             "error": f"Error subscribing to pattern '{pattern}': {str(e)}",
         }
+    except SubscriptionLimitExceededError as e:
+        return {"error": str(e)}
 
 
 @mcp.tool()

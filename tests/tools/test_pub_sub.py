@@ -179,6 +179,49 @@ class TestPubSubOperations:
         }
 
     @pytest.mark.asyncio
+    async def test_subscribe_rejects_when_subscription_limit_exceeded(
+        self, mock_redis_connection_manager
+    ):
+        """Test subscribe returns a clear error when active subscription limit is reached."""
+        mock_redis = mock_redis_connection_manager
+        mock_pubsub = Mock()
+        mock_redis.pubsub.return_value = mock_pubsub
+        limit_error = "Too many active subscriptions. Close unused subscriptions and try again."
+
+        with patch.object(SubscriptionManager, "MAX_ACTIVE_SUBSCRIPTIONS", 1):
+            first = await subscribe("test_channel_1")
+            second = await subscribe("test_channel_2")
+
+        assert first["status"] == "success"
+        assert second == {"error": limit_error}
+        assert mock_pubsub.close.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_subscribe_cleans_stale_subscription_before_enforcing_limit(
+        self, mock_redis_connection_manager
+    ):
+        """Test stale subscriptions are cleaned up before capacity check."""
+        mock_redis = mock_redis_connection_manager
+        stale_pubsub = Mock()
+        fresh_pubsub = Mock()
+        mock_redis.pubsub.side_effect = [stale_pubsub, fresh_pubsub]
+
+        with (
+            patch.object(SubscriptionManager, "MAX_ACTIVE_SUBSCRIPTIONS", 1),
+            patch.object(SubscriptionManager, "STALE_SUBSCRIPTION_TTL_SECONDS", 60),
+            patch("src.common.subscription_manager.time.time") as mock_time,
+        ):
+            mock_time.side_effect = [1000, 1000, 1100, 1100]
+            first = await subscribe("test_channel_1")
+            second = await subscribe("test_channel_2")
+
+        assert first["status"] == "success"
+        assert second["status"] == "success"
+        stale_pubsub.close.assert_called_once()
+        assert first["subscription_id"] not in SubscriptionManager._subscriptions
+        assert second["subscription_id"] in SubscriptionManager._subscriptions
+
+    @pytest.mark.asyncio
     async def test_psubscribe_success(self, mock_redis_connection_manager):
         """Test successful pattern subscribe operation."""
         mock_redis = mock_redis_connection_manager

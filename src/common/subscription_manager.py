@@ -8,6 +8,10 @@ from redis import Redis
 from redis.client import PubSub
 
 
+class SubscriptionLimitExceededError(Exception):
+    """Raised when a new subscription cannot be created due to capacity limits."""
+
+
 def _decode_message_value(value: Any) -> Any:
     if isinstance(value, bytes):
         try:
@@ -33,12 +37,15 @@ class Subscription:
     mode: str
     targets: List[str]
     created_at: float = field(default_factory=time.time)
+    last_accessed_at: float = field(default_factory=time.time)
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
 
 class SubscriptionManager:
     _subscriptions: Dict[str, Subscription] = {}
     _lock = threading.Lock()
+    MAX_ACTIVE_SUBSCRIPTIONS = 1000
+    STALE_SUBSCRIPTION_TTL_SECONDS = 300
 
     @classmethod
     def subscribe(cls, redis_client: Redis, channel: str) -> Dict[str, Any]:
@@ -70,6 +77,7 @@ class SubscriptionManager:
         messages: List[Dict[str, Any]] = []
 
         with subscription.lock:
+            subscription.last_accessed_at = time.time()
             while len(messages) < max_messages:
                 remaining = max(0.0, deadline - time.monotonic())
                 message = subscription.pubsub.get_message(
@@ -129,6 +137,11 @@ class SubscriptionManager:
         )
 
         with cls._lock:
+            cls._cleanup_stale_subscriptions_locked()
+            if len(cls._subscriptions) >= cls.MAX_ACTIVE_SUBSCRIPTIONS:
+                raise SubscriptionLimitExceededError(
+                    "Too many active subscriptions. Close unused subscriptions and try again."
+                )
             cls._subscriptions[subscription_id] = subscription
 
         return {
@@ -147,6 +160,25 @@ class SubscriptionManager:
             raise KeyError(subscription_id)
 
         return subscription
+
+    @classmethod
+    def _cleanup_stale_subscriptions_locked(cls) -> None:
+        now = time.time()
+        stale_ids = [
+            subscription_id
+            for subscription_id, subscription in cls._subscriptions.items()
+            if now - subscription.last_accessed_at > cls.STALE_SUBSCRIPTION_TTL_SECONDS
+        ]
+
+        stale_subscriptions = [
+            cls._subscriptions.pop(subscription_id)
+            for subscription_id in stale_ids
+            if subscription_id in cls._subscriptions
+        ]
+
+        for subscription in stale_subscriptions:
+            with subscription.lock:
+                subscription.pubsub.close()
 
     @classmethod
     def _pop(cls, subscription_id: str) -> Subscription:
