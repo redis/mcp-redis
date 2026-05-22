@@ -1,7 +1,14 @@
+import asyncio
+
 from redis.exceptions import RedisError
 
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
+
+# Registry of active PubSub objects keyed by channel name.
+# Required so that unsubscribe() can close the exact connection opened by subscribe().
+_subscriptions: dict[str, object] = {}
+_subscriptions_lock = asyncio.Lock()
 
 
 @mcp.tool()
@@ -33,12 +40,20 @@ async def subscribe(channel: str) -> str:
     Returns:
         A success message or an error message.
     """
+    pubsub = None
     try:
-        r = RedisConnectionManager.get_connection()
-        pubsub = r.pubsub()
-        pubsub.subscribe(channel)
+        async with _subscriptions_lock:
+            if channel in _subscriptions:
+                return f"Already subscribed to channel '{channel}'."
+            r = RedisConnectionManager.get_connection()
+            pubsub = r.pubsub()
+            pubsub.subscribe(channel)
+            _subscriptions[channel] = pubsub
+            pubsub = None  # ownership transferred to registry
         return f"Subscribed to channel '{channel}'."
     except RedisError as e:
+        if pubsub is not None:
+            pubsub.close()
         return f"Error subscribing to channel '{channel}': {str(e)}"
 
 
@@ -53,9 +68,11 @@ async def unsubscribe(channel: str) -> str:
         A success message or an error message.
     """
     try:
-        r = RedisConnectionManager.get_connection()
-        pubsub = r.pubsub()
-        pubsub.unsubscribe(channel)
+        async with _subscriptions_lock:
+            pubsub = _subscriptions.pop(channel, None)
+        if pubsub is None:
+            return f"Not subscribed to channel '{channel}'."
+        pubsub.close()
         return f"Unsubscribed from channel '{channel}'."
     except RedisError as e:
         return f"Error unsubscribing from channel '{channel}': {str(e)}"
