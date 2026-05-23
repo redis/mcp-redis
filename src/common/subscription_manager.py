@@ -136,8 +136,12 @@ class SubscriptionManager:
             targets=targets,
         )
 
+        stale_subscriptions = cls._collect_stale_subscriptions()
+        for stale_subscription in stale_subscriptions:
+            with stale_subscription.lock:
+                stale_subscription.pubsub.close()
+
         with cls._lock:
-            cls._cleanup_stale_subscriptions_locked()
             if len(cls._subscriptions) >= cls.MAX_ACTIVE_SUBSCRIPTIONS:
                 raise SubscriptionLimitExceededError(
                     "Too many active subscriptions. Close unused subscriptions and try again."
@@ -162,23 +166,21 @@ class SubscriptionManager:
         return subscription
 
     @classmethod
-    def _cleanup_stale_subscriptions_locked(cls) -> None:
+    def _collect_stale_subscriptions(cls) -> List[Subscription]:
         now = time.time()
-        stale_ids = [
-            subscription_id
-            for subscription_id, subscription in cls._subscriptions.items()
-            if now - subscription.last_accessed_at > cls.STALE_SUBSCRIPTION_TTL_SECONDS
-        ]
+        with cls._lock:
+            stale_ids = [
+                subscription_id
+                for subscription_id, subscription in cls._subscriptions.items()
+                if now - subscription.last_accessed_at
+                > cls.STALE_SUBSCRIPTION_TTL_SECONDS
+            ]
 
-        stale_subscriptions = [
-            cls._subscriptions.pop(subscription_id)
-            for subscription_id in stale_ids
-            if subscription_id in cls._subscriptions
-        ]
-
-        for subscription in stale_subscriptions:
-            with subscription.lock:
-                subscription.pubsub.close()
+            return [
+                cls._subscriptions.pop(subscription_id)
+                for subscription_id in stale_ids
+                if subscription_id in cls._subscriptions
+            ]
 
     @classmethod
     def _pop(cls, subscription_id: str) -> Subscription:
