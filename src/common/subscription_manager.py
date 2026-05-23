@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 import uuid
@@ -6,6 +7,8 @@ from typing import Any, Dict, List
 
 from redis import Redis
 from redis.client import PubSub
+
+logger = logging.getLogger(__name__)
 
 
 class SubscriptionLimitExceededError(Exception):
@@ -126,8 +129,12 @@ class SubscriptionManager:
             try:
                 with subscription.lock:
                     subscription.pubsub.close()
-            except Exception:
-                continue
+            except Exception as exc:
+                logger.warning(
+                    "Failed to close pubsub during reset for subscription %s: %s",
+                    subscription.subscription_id,
+                    exc,
+                )
 
     @classmethod
     def _store(cls, pubsub: PubSub, mode: str, targets: List[str]) -> Dict[str, Any]:
