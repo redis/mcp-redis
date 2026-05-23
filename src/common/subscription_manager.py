@@ -123,8 +123,11 @@ class SubscriptionManager:
             cls._subscriptions = {}
 
         for subscription in subscriptions:
-            with subscription.lock:
-                subscription.pubsub.close()
+            try:
+                with subscription.lock:
+                    subscription.pubsub.close()
+            except Exception:
+                continue
 
     @classmethod
     def _store(cls, pubsub: PubSub, mode: str, targets: List[str]) -> Dict[str, Any]:

@@ -265,6 +265,27 @@ class TestPubSubOperations:
         assert third["subscription_id"] in SubscriptionManager._subscriptions
 
     @pytest.mark.asyncio
+    async def test_reset_closes_all_subscriptions_even_when_one_close_fails(
+        self, mock_redis_connection_manager
+    ):
+        """Test reset attempts to close all subscriptions despite close failures."""
+        mock_redis = mock_redis_connection_manager
+        failing_pubsub = Mock()
+        healthy_pubsub = Mock()
+        mock_redis.pubsub.side_effect = [failing_pubsub, healthy_pubsub]
+        failing_pubsub.close.side_effect = RedisError("close failed")
+
+        first = await subscribe("test_channel_1")
+        second = await subscribe("test_channel_2")
+
+        SubscriptionManager.reset()
+
+        failing_pubsub.close.assert_called_once()
+        healthy_pubsub.close.assert_called_once()
+        assert first["subscription_id"] not in SubscriptionManager._subscriptions
+        assert second["subscription_id"] not in SubscriptionManager._subscriptions
+
+    @pytest.mark.asyncio
     async def test_psubscribe_success(self, mock_redis_connection_manager):
         """Test successful pattern subscribe operation."""
         mock_redis = mock_redis_connection_manager
