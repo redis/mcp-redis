@@ -213,7 +213,7 @@ class TestPubSubOperations:
             patch.object(SubscriptionManager, "STALE_SUBSCRIPTION_TTL_SECONDS", 60),
             patch("src.common.subscription_manager.time.time") as mock_time,
         ):
-            mock_time.side_effect = [1000, 1000, 1100, 1100]
+            mock_time.side_effect = [1000, 1000, 1000, 1100, 1100, 1100]
             first = await subscribe("test_channel_1")
             second = await subscribe("test_channel_2")
 
