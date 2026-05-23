@@ -186,7 +186,9 @@ class TestPubSubOperations:
         mock_redis = mock_redis_connection_manager
         mock_pubsub = Mock()
         mock_redis.pubsub.return_value = mock_pubsub
-        limit_error = "Too many active subscriptions. Close unused subscriptions and try again."
+        limit_error = (
+            "Too many active subscriptions. Close unused subscriptions and try again."
+        )
 
         with patch.object(SubscriptionManager, "MAX_ACTIVE_SUBSCRIPTIONS", 1):
             first = await subscribe("test_channel_1")
