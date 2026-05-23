@@ -2,6 +2,8 @@
 Unit tests for src/tools/pub_sub.py
 """
 
+import threading
+import time
 from unittest.mock import Mock, patch
 
 import pytest
@@ -413,6 +415,46 @@ class TestPubSubOperations:
             "first",
             "second",
         ]
+
+    @pytest.mark.asyncio
+    async def test_read_messages_timeout_budget_starts_after_lock_acquisition(
+        self, mock_redis_connection_manager
+    ):
+        """Test timeout budget is computed after acquiring subscription lock."""
+        mock_redis = mock_redis_connection_manager
+        mock_pubsub = Mock()
+        captured_timeouts = []
+
+        def capture_timeout(*args, **kwargs):
+            captured_timeouts.append(kwargs.get("timeout"))
+            return None
+
+        mock_pubsub.get_message.side_effect = capture_timeout
+        mock_redis.pubsub.return_value = mock_pubsub
+
+        subscription = await subscribe("test_channel")
+        managed_subscription = SubscriptionManager._subscriptions[
+            subscription["subscription_id"]
+        ]
+
+        managed_subscription.lock.acquire()
+        releaser = threading.Thread(
+            target=lambda: (time.sleep(0.2), managed_subscription.lock.release())
+        )
+        releaser.start()
+
+        try:
+            result = await read_messages(
+                subscription["subscription_id"], timeout_ms=300, max_messages=1
+            )
+        finally:
+            releaser.join(timeout=1)
+            if managed_subscription.lock.locked():
+                managed_subscription.lock.release()
+
+        assert result["message_count"] == 0
+        assert captured_timeouts
+        assert captured_timeouts[0] > 0.25
 
     @pytest.mark.asyncio
     async def test_read_messages_returns_empty_list_when_no_messages(

@@ -73,10 +73,10 @@ class SubscriptionManager:
     ) -> Dict[str, Any]:
         subscription = cls._get(subscription_id)
         timeout_seconds = timeout_ms / 1000
-        deadline = time.monotonic() + timeout_seconds
         messages: List[Dict[str, Any]] = []
 
         with subscription.lock:
+            deadline = time.monotonic() + timeout_seconds
             subscription.last_accessed_at = time.time()
             while len(messages) < max_messages:
                 remaining = max(0.0, deadline - time.monotonic())
