@@ -137,9 +137,7 @@ class SubscriptionManager:
         )
 
         stale_subscriptions = cls._collect_stale_subscriptions()
-        for stale_subscription in stale_subscriptions:
-            with stale_subscription.lock:
-                stale_subscription.pubsub.close()
+        cls._close_stale_subscriptions(stale_subscriptions)
 
         with cls._lock:
             if len(cls._subscriptions) >= cls.MAX_ACTIVE_SUBSCRIPTIONS:
@@ -181,6 +179,23 @@ class SubscriptionManager:
                 for subscription_id in stale_ids
                 if subscription_id in cls._subscriptions
             ]
+
+    @classmethod
+    def _close_stale_subscriptions(
+        cls, stale_subscriptions: List[Subscription]
+    ) -> None:
+        failed_to_close: List[Subscription] = []
+        for stale_subscription in stale_subscriptions:
+            try:
+                with stale_subscription.lock:
+                    stale_subscription.pubsub.close()
+            except Exception:
+                failed_to_close.append(stale_subscription)
+
+        if failed_to_close:
+            with cls._lock:
+                for subscription in failed_to_close:
+                    cls._subscriptions[subscription.subscription_id] = subscription
 
     @classmethod
     def _pop(cls, subscription_id: str) -> Subscription:

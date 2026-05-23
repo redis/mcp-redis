@@ -225,6 +225,44 @@ class TestPubSubOperations:
         assert second["subscription_id"] in SubscriptionManager._subscriptions
 
     @pytest.mark.asyncio
+    async def test_subscribe_stale_cleanup_continues_when_close_fails(
+        self, mock_redis_connection_manager
+    ):
+        """Test stale cleanup still processes remaining subscriptions after one close failure."""
+        mock_redis = mock_redis_connection_manager
+        failing_stale_pubsub = Mock()
+        healthy_stale_pubsub = Mock()
+        fresh_pubsub = Mock()
+
+        failing_stale_pubsub.close.side_effect = [RedisError("close failed"), None]
+        mock_redis.pubsub.side_effect = [
+            failing_stale_pubsub,
+            healthy_stale_pubsub,
+            fresh_pubsub,
+        ]
+
+        with (
+            patch.object(SubscriptionManager, "MAX_ACTIVE_SUBSCRIPTIONS", 3),
+            patch.object(SubscriptionManager, "STALE_SUBSCRIPTION_TTL_SECONDS", 60),
+        ):
+            first = await subscribe("test_channel_1")
+            second = await subscribe("test_channel_2")
+            SubscriptionManager._subscriptions[
+                first["subscription_id"]
+            ].last_accessed_at = 0
+            SubscriptionManager._subscriptions[
+                second["subscription_id"]
+            ].last_accessed_at = 0
+            third = await subscribe("test_channel_3")
+
+        assert third["status"] == "success"
+        failing_stale_pubsub.close.assert_called_once()
+        healthy_stale_pubsub.close.assert_called_once()
+        assert first["subscription_id"] in SubscriptionManager._subscriptions
+        assert second["subscription_id"] not in SubscriptionManager._subscriptions
+        assert third["subscription_id"] in SubscriptionManager._subscriptions
+
+    @pytest.mark.asyncio
     async def test_psubscribe_success(self, mock_redis_connection_manager):
         """Test successful pattern subscribe operation."""
         mock_redis = mock_redis_connection_manager
