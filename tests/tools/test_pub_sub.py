@@ -211,10 +211,11 @@ class TestPubSubOperations:
         with (
             patch.object(SubscriptionManager, "MAX_ACTIVE_SUBSCRIPTIONS", 1),
             patch.object(SubscriptionManager, "STALE_SUBSCRIPTION_TTL_SECONDS", 60),
-            patch("src.common.subscription_manager.time.time") as mock_time,
         ):
-            mock_time.side_effect = [1000, 1000, 1000, 1100, 1100, 1100]
             first = await subscribe("test_channel_1")
+            SubscriptionManager._subscriptions[
+                first["subscription_id"]
+            ].last_accessed_at = 0
             second = await subscribe("test_channel_2")
 
         assert first["status"] == "success"
