@@ -39,7 +39,6 @@ class Subscription:
     pubsub: PubSub
     mode: str
     targets: List[str]
-    created_at: float = field(default_factory=time.time)
     last_accessed_at: float = field(default_factory=time.time)
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
