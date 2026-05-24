@@ -47,6 +47,7 @@ class Subscription:
 class SubscriptionManager:
     _subscriptions: Dict[str, Subscription] = {}
     _lock = threading.Lock()
+    _stale_slots_reserved = 0
     MAX_ACTIVE_SUBSCRIPTIONS = 1000
     STALE_SUBSCRIPTION_TTL_SECONDS = 300
 
@@ -124,6 +125,7 @@ class SubscriptionManager:
         with cls._lock:
             subscriptions = list(cls._subscriptions.values())
             cls._subscriptions = {}
+            cls._stale_slots_reserved = 0
 
         for subscription in subscriptions:
             try:
@@ -150,7 +152,8 @@ class SubscriptionManager:
         cls._close_stale_subscriptions(stale_subscriptions)
 
         with cls._lock:
-            if len(cls._subscriptions) >= cls.MAX_ACTIVE_SUBSCRIPTIONS:
+            total_active = len(cls._subscriptions) + cls._stale_slots_reserved
+            if total_active >= cls.MAX_ACTIVE_SUBSCRIPTIONS:
                 raise SubscriptionLimitExceededError(
                     "Too many active subscriptions. Close unused subscriptions and try again."
                 )
@@ -184,11 +187,13 @@ class SubscriptionManager:
                 > cls.STALE_SUBSCRIPTION_TTL_SECONDS
             ]
 
-            return [
+            stale_subscriptions = [
                 cls._subscriptions.pop(subscription_id)
                 for subscription_id in stale_ids
                 if subscription_id in cls._subscriptions
             ]
+            cls._stale_slots_reserved += len(stale_subscriptions)
+            return stale_subscriptions
 
     @classmethod
     def _close_stale_subscriptions(
@@ -206,6 +211,11 @@ class SubscriptionManager:
             with cls._lock:
                 for subscription in failed_to_close:
                     cls._subscriptions[subscription.subscription_id] = subscription
+
+        with cls._lock:
+            cls._stale_slots_reserved = max(
+                0, cls._stale_slots_reserved - len(stale_subscriptions)
+            )
 
     @classmethod
     def _pop(cls, subscription_id: str) -> Subscription:

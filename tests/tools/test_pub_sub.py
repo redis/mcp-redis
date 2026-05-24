@@ -201,6 +201,25 @@ class TestPubSubOperations:
         assert mock_pubsub.close.call_count == 1
 
     @pytest.mark.asyncio
+    async def test_subscribe_rejects_when_stale_slots_are_reserved(
+        self, mock_redis_connection_manager
+    ):
+        """Test subscription cap accounts for stale slots reserved during cleanup."""
+        mock_redis = mock_redis_connection_manager
+        mock_pubsub = Mock()
+        mock_redis.pubsub.return_value = mock_pubsub
+        limit_error = (
+            "Too many active subscriptions. Close unused subscriptions and try again."
+        )
+
+        with patch.object(SubscriptionManager, "MAX_ACTIVE_SUBSCRIPTIONS", 1):
+            SubscriptionManager._stale_slots_reserved = 1
+            result = await subscribe("test_channel")
+
+        assert result == {"error": limit_error}
+        mock_pubsub.close.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_subscribe_cleans_stale_subscription_before_enforcing_limit(
         self, mock_redis_connection_manager
     ):
