@@ -23,11 +23,18 @@ async def mset(mappings: dict) -> str:
 
     try:
         r: Redis = RedisConnectionManager.get_connection()
-        encoded = {
-            k: (v if isinstance(v, bytes) else json.dumps(v).encode("utf-8") if isinstance(v, dict) else str(v).encode("utf-8"))
-            for k, v in mappings.items()
-        }
-        r.mset(encoded)
+        normalized = {}
+        for k, v in mappings.items():
+            if isinstance(v, dict):
+                normalized[k] = json.dumps(v)
+            elif isinstance(v, bytes):
+                try:
+                    normalized[k] = v.decode("utf-8")
+                except UnicodeDecodeError:
+                    return f"Error setting keys: value for key '{k}' is not valid UTF-8"
+            else:
+                normalized[k] = str(v)
+        r.mset(normalized)
         return f"Successfully set {len(mappings)} keys: {', '.join(mappings.keys())}"
     except RedisError as e:
         return f"Error setting keys: {str(e)}"
@@ -53,11 +60,13 @@ async def mget(keys: list) -> dict:
         for key, value in zip(keys, values):
             if value is None:
                 result[key] = None
-            else:
+            elif isinstance(value, bytes):
                 try:
                     result[key] = value.decode("utf-8")
                 except UnicodeDecodeError:
                     result[key] = repr(value)
+            else:
+                result[key] = value
         return result
     except RedisError as e:
         return {"error": str(e)}
