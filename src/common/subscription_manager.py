@@ -47,7 +47,7 @@ class SubscriptionManager:
     _subscriptions: Dict[str, Subscription] = {}
     _lock = threading.Lock()
     _stale_slots_reserved = 0
-    MAX_ACTIVE_SUBSCRIPTIONS = 1000
+    MAX_ACTIVE_SUBSCRIPTIONS = 50
     STALE_SUBSCRIPTION_TTL_SECONDS = 300
 
     @classmethod
