@@ -106,6 +106,16 @@ def reset_connection_manager():
     RedisConnectionManager._instance = None
 
 
+@pytest.fixture(autouse=True)
+def reset_subscription_manager():
+    """Reset the pub/sub subscription registry before each test."""
+    from src.common.subscription_manager import SubscriptionManager
+
+    SubscriptionManager.reset()
+    yield
+    SubscriptionManager.reset()
+
+
 @pytest.fixture
 def mock_numpy_array():
     """Mock numpy array for vector testing."""

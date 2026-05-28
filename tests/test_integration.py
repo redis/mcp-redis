@@ -219,6 +219,8 @@ class TestMCPServerIntegration:
             "scan_all_keys",
             "search_redis_documents",
             "publish",
+            "psubscribe",
+            "read_messages",
             "subscribe",
             "unsubscribe",
             "get_indexes",
@@ -275,7 +277,7 @@ class TestMCPServerIntegration:
         tool_names = [tool["name"] for tool in tools]
 
         # Expected tool count (based on @mcp.tool() decorators in codebase)
-        expected_tool_count = 51
+        expected_tool_count = 53
         assert len(tools) == expected_tool_count, (
             f"Expected {expected_tool_count} tools, but got {len(tools)}"
         )
@@ -308,6 +310,8 @@ class TestMCPServerIntegration:
             "lpush",
             "lrange",
             "publish",
+            "psubscribe",
+            "read_messages",
             "rename",
             "rpop",
             "rpush",
@@ -359,7 +363,13 @@ class TestMCPServerIntegration:
                 "xack",
             ],
             "json": ["json_get", "json_set", "json_del"],
-            "pub_sub": ["publish", "subscribe", "unsubscribe"],
+            "pub_sub": [
+                "publish",
+                "psubscribe",
+                "read_messages",
+                "subscribe",
+                "unsubscribe",
+            ],
             "server_mgmt": ["dbsize", "info", "client_list"],
             "misc": [
                 "delete",
