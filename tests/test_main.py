@@ -39,6 +39,24 @@ class TestRedisMCPServer:
         mock_mcp_run.assert_called_once()
 
     @patch("src.main.mcp.run")
+    def test_run_sets_http_host_port_and_normalizes_http_transport(self, mock_mcp_run):
+        """HTTP settings should be applied before starting FastMCP."""
+        server = RedisMCPServer(
+            transport="http",
+            http_host="0.0.0.0",
+            http_port=9000,
+        )
+
+        server.run()
+
+        assert server.transport == "streamable-http"
+        assert server.http_host == "0.0.0.0"
+        assert server.http_port == 9000
+        assert server._normalize_transport("http") == "streamable-http"
+        assert server._normalize_transport("sse") == "sse"
+        mock_mcp_run.assert_called_once_with(transport="streamable-http")
+
+    @patch("src.main.mcp.run")
     def test_run_propagates_exceptions(self, mock_mcp_run):
         """Test that exceptions from mcp.run() are propagated."""
         mock_mcp_run.side_effect = Exception("MCP run failed")
@@ -62,7 +80,12 @@ class TestCLI:
         self, mock_server_class, mock_set_config, mock_parse_uri
     ):
         """Test CLI with --url parameter."""
-        mock_parse_uri.return_value = {"host": "localhost", "port": 6379}
+        mock_parse_uri.return_value = {
+            "host": "localhost",
+            "port": 6379,
+            "topology": "standalone",
+            "cluster_mode": False,
+        }
         mock_server = Mock()
         mock_server_class.return_value = mock_server
 
@@ -70,8 +93,17 @@ class TestCLI:
 
         assert result.exit_code == 0
         mock_parse_uri.assert_called_once_with("redis://localhost:6379/0")
-        mock_set_config.assert_called_once_with({"host": "localhost", "port": 6379})
-        mock_server_class.assert_called_once()
+        mock_set_config.assert_called_once_with(
+            {
+                "host": "localhost",
+                "port": 6379,
+                "topology": "standalone",
+                "cluster_mode": False,
+            }
+        )
+        mock_server_class.assert_called_once_with(
+            transport="stdio", http_host="127.0.0.1", http_port=8000
+        )
         mock_server.run.assert_called_once()
 
     @patch("src.main.set_redis_config_from_cli")
@@ -109,6 +141,9 @@ class TestCLI:
         assert call_args["username"] == "testuser"
         assert call_args["password"] == "testpass"
         assert call_args["ssl"] is True
+        # topology should not be in config when --topology is not explicitly passed,
+        # allowing it to be determined from environment or defaults
+        assert "topology" not in call_args
 
     @patch("src.main.set_redis_config_from_cli")
     @patch("src.main.RedisMCPServer")
@@ -155,6 +190,49 @@ class TestCLI:
         assert result.exit_code == 0
         call_args = mock_set_config.call_args[0][0]
         assert call_args["cluster_mode"] is True
+        # topology should NOT be in config when --cluster-mode is passed without
+        # --topology, so the after-loop guard can properly set it to "cluster"
+        assert "topology" not in call_args
+
+    @patch("src.main.set_redis_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_cli_with_sentinel_topology(self, mock_server_class, mock_set_config):
+        """Test CLI sentinel topology parameters."""
+        mock_server = Mock()
+        mock_server_class.return_value = mock_server
+
+        result = self.runner.invoke(
+            cli,
+            [
+                "--topology",
+                "sentinel",
+                "--sentinel-master-name",
+                "mymaster",
+                "--sentinel-nodes",
+                "host1:26379,host2:26380",
+            ],
+        )
+
+        assert result.exit_code == 0
+        call_args = mock_set_config.call_args[0][0]
+        assert call_args["topology"] == "sentinel"
+        assert call_args["sentinel_master_name"] == "mymaster"
+        assert call_args["sentinel_nodes"] == "host1:26379,host2:26380"
+
+    @patch("src.main.parse_redis_uri")
+    def test_cli_with_invalid_sentinel_config(self, mock_parse_uri):
+        """Sentinel topology should require master name and nodes."""
+        mock_parse_uri.return_value = {
+            "host": "localhost",
+            "port": 6379,
+            "topology": "standalone",
+            "cluster_mode": False,
+        }
+
+        result = self.runner.invoke(cli, ["--topology", "sentinel"])
+
+        assert result.exit_code != 0
+        assert "Error validating Redis configuration" in result.output
 
     @patch("src.main.parse_redis_uri")
     def test_cli_with_invalid_url(self, mock_parse_uri):
@@ -213,8 +291,7 @@ class TestCLI:
         # Check that only non-None values are in the config
         for key, value in call_args.items():
             if value is not None:
-                # These should be the default values or explicitly set values
-                assert isinstance(value, (str, int, bool))
+                assert isinstance(value, (str, int, bool, list))
 
     @patch("src.main.parse_redis_uri")
     @patch("src.main.set_redis_config_from_cli")
@@ -223,7 +300,12 @@ class TestCLI:
         self, mock_server_class, mock_set_config, mock_parse_uri
     ):
         """Test that --url parameter takes precedence over individual parameters."""
-        mock_parse_uri.return_value = {"host": "uri-host", "port": 9999}
+        mock_parse_uri.return_value = {
+            "host": "uri-host",
+            "port": 9999,
+            "topology": "cluster",
+            "cluster_mode": True,
+        }
         mock_server = Mock()
         mock_server_class.return_value = mock_server
 
@@ -245,3 +327,208 @@ class TestCLI:
         call_args = mock_set_config.call_args[0][0]
         assert call_args["host"] == "uri-host"
         assert call_args["port"] == 9999
+        assert call_args["topology"] == "cluster"
+        assert call_args["cluster_mode"] is True
+
+
+class TestTransportProtocols:
+    """Test cases for different transport protocols."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.runner = CliRunner()
+
+    @patch("src.main.set_redis_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_http_transport_with_custom_host_port(
+        self, mock_server_class, mock_set_config
+    ):
+        """Test HTTP transport with custom host and port."""
+        mock_server = Mock()
+        mock_server_class.return_value = mock_server
+
+        result = self.runner.invoke(
+            cli,
+            [
+                "--transport",
+                "http",
+                "--http-host",
+                "0.0.0.0",
+                "--http-port",
+                "9000",
+                "--url",
+                "redis://localhost:6379/0",
+            ],
+        )
+
+        assert result.exit_code == 0
+        mock_server_class.assert_called_once_with(
+            transport="http", http_host="0.0.0.0", http_port=9000
+        )
+        mock_server.run.assert_called_once()
+
+    @patch("src.main.set_redis_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_sse_transport_with_default_host_port(
+        self, mock_server_class, mock_set_config
+    ):
+        """Test SSE transport with default host and port."""
+        mock_server = Mock()
+        mock_server_class.return_value = mock_server
+
+        result = self.runner.invoke(
+            cli,
+            ["--transport", "sse", "--url", "redis://localhost:6379/0"],
+        )
+
+        assert result.exit_code == 0
+        mock_server_class.assert_called_once_with(
+            transport="sse", http_host="127.0.0.1", http_port=8000
+        )
+        mock_server.run.assert_called_once()
+
+    @patch("src.main.set_redis_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_streamable_http_transport(self, mock_server_class, mock_set_config):
+        """Test streamable-http transport."""
+        mock_server = Mock()
+        mock_server_class.return_value = mock_server
+
+        result = self.runner.invoke(
+            cli,
+            [
+                "--transport",
+                "streamable-http",
+                "--http-host",
+                "192.168.1.100",
+                "--http-port",
+                "8080",
+                "--host",
+                "redis.example.com",
+                "--port",
+                "6379",
+            ],
+        )
+
+        assert result.exit_code == 0
+        mock_server_class.assert_called_once_with(
+            transport="streamable-http", http_host="192.168.1.100", http_port=8080
+        )
+        mock_server.run.assert_called_once()
+
+    @patch("src.main.set_redis_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_invalid_transport_option(self, mock_server_class, mock_set_config):
+        """Test that invalid transport option is rejected."""
+        mock_server = Mock()
+        mock_server_class.return_value = mock_server
+
+        result = self.runner.invoke(
+            cli,
+            ["--transport", "invalid-transport", "--url", "redis://localhost:6379/0"],
+        )
+
+        assert result.exit_code != 0
+        assert (
+            "Invalid value for '--transport'" in result.output
+            or "Invalid choice" in result.output
+        )
+
+    @patch("src.main.set_redis_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_stdio_transport_default_behavior(self, mock_server_class, mock_set_config):
+        """Test that stdio is the default transport."""
+        mock_server = Mock()
+        mock_server_class.return_value = mock_server
+
+        result = self.runner.invoke(cli, ["--url", "redis://localhost:6379/0"])
+
+        assert result.exit_code == 0
+        mock_server_class.assert_called_once_with(
+            transport="stdio", http_host="127.0.0.1", http_port=8000
+        )
+        mock_server.run.assert_called_once()
+
+    @patch("src.main.set_redis_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_http_port_validation(self, mock_server_class, mock_set_config):
+        """Test HTTP port parameter validation."""
+        mock_server = Mock()
+        mock_server_class.return_value = mock_server
+
+        # Test valid port
+        result = self.runner.invoke(
+            cli,
+            [
+                "--transport",
+                "http",
+                "--http-port",
+                "8080",
+                "--url",
+                "redis://localhost:6379/0",
+            ],
+        )
+        assert result.exit_code == 0
+
+        # Test invalid port (should be rejected by Click)
+        result = self.runner.invoke(
+            cli,
+            [
+                "--transport",
+                "http",
+                "--http-port",
+                "invalid",
+                "--url",
+                "redis://localhost:6379/0",
+            ],
+        )
+        assert result.exit_code != 0
+
+    @patch("src.main.set_redis_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_http_host_validation(self, mock_server_class, mock_set_config):
+        """Test HTTP host parameter with different formats."""
+        mock_server = Mock()
+        mock_server_class.return_value = mock_server
+
+        # Test with IP address
+        result = self.runner.invoke(
+            cli,
+            [
+                "--transport",
+                "sse",
+                "--http-host",
+                "10.0.0.1",
+                "--url",
+                "redis://localhost:6379/0",
+            ],
+        )
+        assert result.exit_code == 0
+
+        # Test with hostname
+        result = self.runner.invoke(
+            cli,
+            [
+                "--transport",
+                "http",
+                "--http-host",
+                "mcp-server.example.com",
+                "--url",
+                "redis://localhost:6379/0",
+            ],
+        )
+        assert result.exit_code == 0
+
+        # Test with localhost
+        result = self.runner.invoke(
+            cli,
+            [
+                "--transport",
+                "streamable-http",
+                "--http-host",
+                "localhost",
+                "--url",
+                "redis://localhost:6379/0",
+            ],
+        )
+        assert result.exit_code == 0

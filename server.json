@@ -14,6 +14,24 @@
       }
     },
     {
+      "registryType": "pypi",
+      "identifier": "redis-mcp-server",
+      "version": "$VERSION",
+      "transport": {
+        "type": "http",
+        "url": "http://localhost:8000/mcp"
+      }
+    },
+    {
+      "registryType": "pypi",
+      "identifier": "redis-mcp-server",
+      "version": "$VERSION",
+      "transport": {
+        "type": "sse",
+        "url": "http://localhost:8000/sse"
+      }
+    },
+    {
       "registryType": "oci",
       "identifier": "docker.io/mcp/redis:latest",
       "transport": {
