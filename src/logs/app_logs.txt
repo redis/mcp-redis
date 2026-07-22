@@ -1,0 +1,9 @@
+2026-07-21 18:13:58 | INFO  | [root] --- APP LOG START ---
+2026-07-21 18:14:50 | INFO  | [root] --- APP LOG START ---
+2026-07-21 18:18:44 | INFO  | [root] --- APP LOG START ---
+2026-07-21 18:20:35 | INFO  | [root] --- APP LOG START ---
+2026-07-21 18:41:41 | INFO  | [root] --- APP LOG START ---
+2026-07-21 18:43:27 | ERROR | [mcp.connection] Failed configuring multi-tenant driver setup for 'bbb0002': database "bbb0002" does not exist
+2026-07-21 19:08:11 | ERROR | [mcp.connection] Failed configuring multi-tenant driver setup for 'bbb0002': password authentication failed for user "postgres"
+2026-07-21 19:11:14 | ERROR | [mcp.connection] Failed configuring multi-tenant driver setup for 'bbb0002': permission denied for table redis_config_registry
+2026-07-21 19:23:17 | INFO  | [root] --- APP LOG START ---
