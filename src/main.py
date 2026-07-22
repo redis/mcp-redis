@@ -7,20 +7,40 @@ from src.common.config import (
     parse_redis_uri,
     set_redis_config_from_cli,
     set_entraid_config_from_cli,
+    validate_redis_config,
+    DEFAULT_SENTINEL_PORT,
 )
 from src.common.server import mcp
 from src.common.logging_utils import configure_logging
 
 
 class RedisMCPServer:
-    def __init__(self):
-        # Configure logging on server initialization (idempotent)
+    def __init__(self, transport="stdio", http_host="127.0.0.1", http_port=8000):
         configure_logging()
         self._logger = logging.getLogger(__name__)
-        self._logger.info("Starting the Redis MCP Server")
+        self.transport = self._normalize_transport(transport)
+        self.http_host = http_host
+        self.http_port = http_port
+        self._logger.info(
+            "Starting the Redis MCP Server with transport: %s on %s:%s",
+            self.transport,
+            self.http_host,
+            self.http_port,
+        )
+
+    @staticmethod
+    def _normalize_transport(transport):
+        # FastMCP exposes streamable HTTP using the "streamable-http" transport name.
+        # Accept "http" as a user-facing alias because MCP clients and metadata commonly
+        # describe this deployment mode as HTTP.
+        if transport == "http":
+            return "streamable-http"
+        return transport
 
     def run(self):
-        mcp.run()
+        mcp.settings.host = self.http_host
+        mcp.settings.port = self.http_port
+        mcp.run(transport=self.transport)
 
 
 @click.command()
@@ -28,20 +48,94 @@ class RedisMCPServer:
     "--url",
     help="Redis connection URI (redis://user:pass@host:port/db or rediss:// for SSL)",
 )
-@click.option("--host", default="127.0.0.1", help="Redis host")
-@click.option("--port", default=6379, type=int, help="Redis port")
-@click.option("--db", default=0, type=int, help="Redis database number")
-@click.option("--username", help="Redis username")
-@click.option("--password", help="Redis password")
-@click.option("--ssl", is_flag=True, help="Use SSL connection")
-@click.option("--ssl-ca-path", help="Path to CA certificate file")
-@click.option("--ssl-keyfile", help="Path to SSL key file")
-@click.option("--ssl-certfile", help="Path to SSL certificate file")
 @click.option(
-    "--ssl-cert-reqs", default="required", help="SSL certificate requirements"
+    "--transport",
+    type=click.Choice(["stdio", "http", "sse", "streamable-http"]),
+    default="stdio",
+    envvar="TRANSPORT",
+    help="Transport protocol (stdio, http, sse, or streamable-http)",
 )
-@click.option("--ssl-ca-certs", help="Path to CA certificates file")
-@click.option("--cluster-mode", is_flag=True, help="Enable Redis cluster mode")
+@click.option(
+    "--http-port",
+    type=int,
+    default=8000,
+    envvar=["HTTP_PORT", "FASTMCP_PORT"],
+    help="Port for HTTP/SSE transport",
+)
+@click.option(
+    "--http-host",
+    default="127.0.0.1",
+    envvar=["HTTP_HOST", "FASTMCP_HOST"],
+    help="Host for HTTP/SSE transport",
+)
+@click.option("--host", default="127.0.0.1", envvar="REDIS_HOST", help="Redis host")
+@click.option("--port", default=6379, envvar="REDIS_PORT", type=int, help="Redis port")
+@click.option(
+    "--db", default=0, envvar="REDIS_DB", type=int, help="Redis database number"
+)
+@click.option("--username", envvar="REDIS_USERNAME", help="Redis username")
+@click.option("--password", envvar="REDIS_PWD", help="Redis password")
+@click.option("--ssl", is_flag=True, envvar="REDIS_SSL", help="Use SSL connection")
+@click.option(
+    "--ssl-ca-path", envvar="REDIS_SSL_CA_PATH", help="Path to CA certificate file"
+)
+@click.option("--ssl-keyfile", envvar="REDIS_SSL_KEYFILE", help="Path to SSL key file")
+@click.option(
+    "--ssl-certfile", envvar="REDIS_SSL_CERTFILE", help="Path to SSL certificate file"
+)
+@click.option(
+    "--ssl-cert-reqs",
+    default="required",
+    envvar="REDIS_SSL_CERT_REQS",
+    help="SSL certificate requirements",
+)
+@click.option(
+    "--ssl-ca-certs", envvar="REDIS_SSL_CA_CERTS", help="Path to CA certificates file"
+)
+@click.option(
+    "--topology",
+    type=click.Choice(["standalone", "sentinel", "cluster"]),
+    envvar="REDIS_TOPOLOGY",
+    help="Redis topology mode",
+)
+@click.option(
+    "--cluster-mode",
+    is_flag=True,
+    envvar="REDIS_CLUSTER_MODE",
+    help="Enable Redis cluster mode (legacy compatibility flag)",
+)
+@click.option(
+    "--sentinel-master-name",
+    envvar="REDIS_SENTINEL_MASTER_NAME",
+    help="Sentinel master name to resolve",
+)
+@click.option(
+    "--sentinel-nodes",
+    envvar="REDIS_SENTINEL_NODES",
+    help="Comma-separated Sentinel nodes in host:port form",
+)
+@click.option(
+    "--sentinel-host",
+    envvar="REDIS_SENTINEL_HOST",
+    help="Single Sentinel host (alternative to --sentinel-nodes)",
+)
+@click.option(
+    "--sentinel-port",
+    envvar="REDIS_SENTINEL_PORT",
+    type=int,
+    default=DEFAULT_SENTINEL_PORT,
+    help="Single Sentinel port when using --sentinel-host",
+)
+@click.option(
+    "--sentinel-username",
+    envvar="REDIS_SENTINEL_USERNAME",
+    help="Sentinel username if Sentinel itself requires authentication",
+)
+@click.option(
+    "--sentinel-password",
+    envvar="REDIS_SENTINEL_PWD",
+    help="Sentinel password if Sentinel itself requires authentication",
+)
 # Entra ID Authentication Options
 @click.option(
     "--entraid-auth-flow",
@@ -90,6 +184,9 @@ class RedisMCPServer:
 )
 def cli(
     url,
+    transport,
+    http_port,
+    http_host,
     host,
     port,
     db,
@@ -101,7 +198,14 @@ def cli(
     ssl_certfile,
     ssl_cert_reqs,
     ssl_ca_certs,
+    topology,
     cluster_mode,
+    sentinel_master_name,
+    sentinel_nodes,
+    sentinel_host,
+    sentinel_port,
+    sentinel_username,
+    sentinel_password,
     entraid_auth_flow,
     entraid_client_id,
     entraid_client_secret,
@@ -133,8 +237,21 @@ def cli(
             "db": db,
             "ssl": ssl,
             "cluster_mode": cluster_mode,
+            "sentinel_master_name": sentinel_master_name,
+            "sentinel_username": sentinel_username,
+            "sentinel_password": sentinel_password,
         }
 
+        # Only include topology in config when explicitly set, so the after-loop
+        # guard in set_redis_config_from_cli can properly handle --cluster-mode
+        # without --topology
+        if topology is not None:
+            config["topology"] = topology
+
+        if sentinel_nodes:
+            config["sentinel_nodes"] = sentinel_nodes
+        elif sentinel_host:
+            config["sentinel_nodes"] = [(sentinel_host, sentinel_port)]
         if username:
             config["username"] = username
         if password:
@@ -151,6 +268,11 @@ def cli(
             config["ssl_ca_certs"] = ssl_ca_certs
 
         set_redis_config_from_cli(config)
+
+    is_valid, error_message = validate_redis_config()
+    if not is_valid:
+        click.echo(f"Error validating Redis configuration: {error_message}", err=True)
+        sys.exit(1)
 
     # Handle Entra ID authentication configuration
     entraid_config = {}
@@ -187,13 +309,17 @@ def cli(
         set_entraid_config_from_cli(entraid_config)
 
     # Start the server
-    server = RedisMCPServer()
+    server = RedisMCPServer(
+        transport=transport,
+        http_host=http_host,
+        http_port=http_port,
+    )
     server.run()
 
 
 def main():
     """Legacy main function for backward compatibility."""
-    server = RedisMCPServer()
+    server = RedisMCPServer(transport="stdio")
     server.run()
 
 
