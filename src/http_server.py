@@ -1,120 +1,4 @@
-# """HTTP API layer for Redis MCP Server - Production Streamable HTTP Architecture"""
-# import contextlib
-# import logging
 
-# from fastapi import FastAPI
-# from fastapi.middleware.cors import CORSMiddleware
-# from starlette.middleware.base import BaseHTTPMiddleware
-# from fastapi import FastAPI, Request, Response  # <-- Added Request and Response here
-# from fastapi.responses import JSONResponse
-
-# from src.common.server import mcp
-
-
-# # Import context tokens and lifecycle connection managers
-# from src.common.connection import current_tenant_id  , tenant_redis_manager
-# # from src.common.tenant_db import tenant_db_manager
-
-
-# logger = logging.getLogger(__name__)
-
-
-# # @contextlib.asynccontextmanager
-# # async def lifespan(app: FastAPI):
-# #     """
-# #     Manages the clean startup and shutdown lifecycles of the application.
-# #     """
-# #     logger.info("Starting Redis MCP server lifespan management...")
-    
-# #     # FastMCP uses session_manager.run() to control the background async engine loop
-# #     async with mcp.session_manager.run():
-# #         logger.info("FastMCP stream engine session successfully bound.")
-# #         yield
-        
-# #     logger.info("Application shutdown complete.")
-
-
-
-
-# # @contextlib.asynccontextmanager
-# # async def lifespan(app: FastAPI):
-# #     """
-# #     Manages the clean startup and shutdown lifecycles of the application.
-# #     """
-# #     logger.info("Starting Redis MCP server lifespan management...")
-    
-# #     # FastMCP uses session_manager.run() to control the background async engine loop
-# #     async with mcp.session_manager.run():
-# #         logger.info("FastMCP stream engine session successfully bound.")
-# #         yield
-        
-# #     # --- Lifecycle Shutdown Block ---
-# #     logger.info("Draining all isolated tenant connectivity frameworks...")
-# #     try:
-# #         # await tenant_redis_manager.shutdown_all_pools()
-# #         # await tenant_db_manager.shutdown_all_pools()
-# #         logger.info("All tenant pools closed successfully.")
-# #     except Exception as e:
-# #         logger.error(f"Error occurred during tenant infrastructure pool teardown: {str(e)}", exc_info=True)
-        
-# #     logger.info("Application shutdown complete.")
-
-# async def periodic_idle_tenant_cleanup():
-#     """
-#     Background worker that runs every 60 seconds to evict inactive 
-#     tenant PostgreSQL and Redis connection pools (idle timeout > 10m).
-#     """
-#     while True:
-#         try:
-#             await asyncio.sleep(60)
-
-#             # Clean Redis idle pools
-#             try:
-#                 await tenant_redis_manager.close_idle_pools()
-#             except Exception as e:
-#                 logger.error(f"Error evicting idle Redis pools: {e}", exc_info=True)
-
-#             # Clean DB idle pools
-#             try:
-#                 await tenant_db_manager.close_idle_pools()
-#             except Exception as e:
-#                 logger.error(f"Error evicting idle DB pools: {e}", exc_info=True)
-
-#         except asyncio.CancelledError:
-#             # Clean exit on task cancellation during lifespan shutdown
-#             logger.info("Background idle cleanup worker cancelled. Stopping loop.")
-#             raise
-
-
-# @contextlib.asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     """
-#     Manages the clean startup and shutdown lifecycles of the application.
-#     """
-#     logger.info("Starting Redis MCP server lifespan management...")
-    
-#     try:
-#         # FastMCP uses session_manager.run() to control the background async engine loop
-#         async with mcp.session_manager.run():
-#             logger.info("FastMCP stream engine session successfully bound.")
-#             yield
-            
-#     finally:
-#         # --- Lifecycle Shutdown Block ---
-#         # This code is guaranteed to run on server exit, preventing resource leaks
-#         print("🛑 [LIFECYCLE] Initiating graceful draining of all isolated tenant connectivity frameworks...", flush=True)
-#         logger.info("Draining all isolated tenant connectivity frameworks...")
-        
-#         try:
-#             # tenant_redis_manager internally calls tenant_db_manager down the chain
-#             await tenant_redis_manager.shutdown_all_pools()
-#             print("✨ [LIFECYCLE] All dynamic tenant pools closed successfully.", flush=True)
-#             logger.info("All tenant pools closed successfully.")
-#         except Exception as e:
-#             print(f"❌ [LIFECYCLE ERROR] Failed to drop tenant structural pools: {str(e)}", flush=True)
-#             logger.error(f"Error occurred during tenant infrastructure pool teardown: {str(e)}", exc_info=True)
-            
-#         logger.info("Application shutdown complete.")
 
 """HTTP API layer for Redis MCP Server - Production Streamable HTTP Architecture"""
 import asyncio
@@ -128,16 +12,18 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.common.server import mcp
 
+
 # Import context tokens and lifecycle connection managers
-from src.common.connection import current_tenant_id, tenant_redis_manager
+from src.common.connection import current_tenant_id, current_mcp_id, tenant_redis_manager
 from src.common.tenant_db import tenant_db_manager
+
 
 logger = logging.getLogger(__name__)
 
 
 async def periodic_idle_tenant_cleanup():
     """
-    Background worker that runs every 60 seconds to evict inactive 
+    Background worker that runs every 10 seconds to evict inactive 
     tenant PostgreSQL and Redis connection pools (idle timeout > 10m).
     """
     while True:
@@ -185,29 +71,32 @@ async def lifespan(app: FastAPI):
             await cleanup_task
 
         # 4. Lifecycle Shutdown Block: Prevents socket leaks on server exit
-        print("🛑 [LIFECYCLE] Initiating graceful draining of all isolated tenant connectivity frameworks...", flush=True)
-        logger.info("Draining all isolated tenant connectivity frameworks...")
+        logger.info("[LIFECYCLE] Initiating graceful draining of all isolated tenant connectivity frameworks...")
 
         try:
             # Drop both Redis and Postgres tenant pools cleanly
             await tenant_redis_manager.shutdown_all_pools()
             await tenant_db_manager.shutdown_all_pools()
-            print("✨ [LIFECYCLE] All dynamic tenant pools closed successfully.", flush=True)
-            logger.info("All tenant pools closed successfully.")
+            logger.info("[LIFECYCLE] All dynamic tenant pools closed successfully.")
         except Exception as e:
-            print(f"❌ [LIFECYCLE ERROR] Failed to drop tenant structural pools: {str(e)}", flush=True)
-            logger.error(f"Error occurred during tenant infrastructure pool teardown: {str(e)}", exc_info=True)
+            logger.error(f"[LIFECYCLE ERROR] Failed to drop tenant structural pools: {str(e)}", exc_info=True)
 
         logger.info("Application shutdown complete.")
 
 
 
-# --- 1. Define the Middleware Layer ---
+
 class MultiTenantMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         # Skip tenant verification for internal/docs pathways
         if request.url.path in ["/health", "/metrics", "/docs", "/openapi.json"]:
             return await call_next(request)
+
+        # FIX FOR SPRING BOOT RESTTEMPLATE:
+        # Silently rewrite /mcp to /mcp/ in ASGI scope so FastAPI won't send a 307 Redirect.
+        if request.scope["path"] == "/mcp":
+            request.scope["path"] = "/mcp/"
+            request.scope["raw_path"] = b"/mcp/"
 
         tenant_id = request.headers.get("X-Tenant-ID")
         if not tenant_id or not tenant_id.strip():
@@ -217,14 +106,15 @@ class MultiTenantMiddleware(BaseHTTPMiddleware):
                 content={"error": "Missing or empty mandatory 'X-Tenant-ID' header."}
             )
 
-        # Secure context isolation ring-fence
-        token = current_tenant_id.set(tenant_id.strip())
+        # Extract optional X-MCP-ID header sent from Java
+        mcp_id = request.headers.get("X-MCP-ID")
 
-        # Using a raw print statement to completely bypass logger layout/buffering
-        print(f"\n>>>> [TENANT HOOK] Connection established for: {tenant_id} on {request.url.path} <<<<\n", flush=True)
-        # ─── ADD THIS LINE FOR TESTING LOGS ────────────────────────────────────
-        logger.info(f"🔑 [TENANT TRACKER] Processing request for Tenant ID: '{tenant_id}' on path: {request.url.path}")
-        # ────────────────────────────────────────────────────────────────
+        # Set thread-local context tokens
+        tenant_token = current_tenant_id.set(tenant_id.strip())
+        mcp_token = current_mcp_id.set(mcp_id.strip() if mcp_id else None)
+
+        logger.info(f"[TENANT TRACKER] Processing request for Tenant: '{tenant_id}' | MCP ID: '{mcp_id}' on path: {request.url.path}")
+
         try:
             response = await call_next(request)
             return response
@@ -235,8 +125,8 @@ class MultiTenantMiddleware(BaseHTTPMiddleware):
                 content={"error": "Internal server execution failure within tenant environment pool."}
             )
         finally:
-            # Safely release the context trace frame
-            current_tenant_id.reset(token)
+            current_tenant_id.reset(tenant_token)
+            current_mcp_id.reset(mcp_token)
 
 
 # Instantiate the web server
@@ -246,7 +136,6 @@ app = FastAPI(
     version="1.0",
     lifespan=lifespan,
 )
-
 
 
 # Register the middleware layer smoothly
