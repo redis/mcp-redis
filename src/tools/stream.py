@@ -1,8 +1,9 @@
+
 from typing import Dict, Any, Optional, List
-
 from redis.exceptions import RedisError
+import redis.asyncio as aioredis
 
-from src.common.connection import RedisConnectionManager
+from src.common.connection import current_tenant_id, tenant_redis_manager
 from src.common.server import mcp
 
 
@@ -21,11 +22,21 @@ async def xadd(
         str: The ID of the added entry or an error message.
     """
     try:
-        r = RedisConnectionManager.get_connection()
-        entry_id = r.xadd(key, fields)
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return "Error: No active tenant context detected for this tool execution."
+
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+
+        entry_id = await r.xadd(key, fields)
         if expiration:
-            r.expire(key, expiration)
-        return f"Successfully added entry {entry_id} to {key}" + (
+            await r.expire(key, expiration)
+
+        # Handle bytes or string return type for entry_id
+        entry_id_str = entry_id.decode("utf-8") if isinstance(entry_id, bytes) else str(entry_id)
+
+        return f"Successfully added entry {entry_id_str} to {key} for tenant {tenant_id}" + (
             f" with expiration {expiration} seconds" if expiration else ""
         )
     except RedisError as e:
@@ -44,9 +55,15 @@ async def xrange(key: str, count: int = 1) -> str:
         str: The retrieved stream entries or an error message.
     """
     try:
-        r = RedisConnectionManager.get_connection()
-        entries = r.xrange(key, count=count)
-        return str(entries) if entries else f"Stream {key} is empty or does not exist"
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return "Error: No active tenant context detected for this tool execution."
+
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+
+        entries = await r.xrange(key, count=count)
+        return str(entries) if entries else f"Stream {key} is empty or does not exist for tenant {tenant_id}"
     except RedisError as e:
         return f"Error reading from stream {key}: {str(e)}"
 
@@ -63,12 +80,18 @@ async def xdel(key: str, entry_id: str) -> str:
         str: Confirmation message or an error message.
     """
     try:
-        r = RedisConnectionManager.get_connection()
-        result = r.xdel(key, entry_id)
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return "Error: No active tenant context detected for this tool execution."
+
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+
+        result = await r.xdel(key, entry_id)
         return (
-            f"Successfully deleted entry {entry_id} from {key}"
+            f"Successfully deleted entry {entry_id} from {key} for tenant {tenant_id}"
             if result
-            else f"Entry {entry_id} not found in {key}"
+            else f"Entry {entry_id} not found in {key} for tenant {tenant_id}"
         )
     except RedisError as e:
         return f"Error deleting from stream {key}: {str(e)}"
@@ -93,9 +116,15 @@ async def xgroup_create(
         str: Confirmation message or an error message.
     """
     try:
-        r = RedisConnectionManager.get_connection()
-        r.xgroup_create(key, group_name, id=start_id, mkstream=mkstream)
-        return f"Successfully created consumer group '{group_name}' on stream '{key}'"
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return "Error: No active tenant context detected for this tool execution."
+
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+
+        await r.xgroup_create(key, group_name, id=start_id, mkstream=mkstream)
+        return f"Successfully created consumer group '{group_name}' on stream '{key}' for tenant {tenant_id}"
     except RedisError as e:
         return (
             f"Error creating consumer group '{group_name}' on stream '{key}': {str(e)}"
@@ -114,12 +143,18 @@ async def xgroup_destroy(key: str, group_name: str) -> str:
         str: Confirmation message or an error message.
     """
     try:
-        r = RedisConnectionManager.get_connection()
-        result = r.xgroup_destroy(key, group_name)
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return "Error: No active tenant context detected for this tool execution."
+
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+
+        result = await r.xgroup_destroy(key, group_name)
         return (
-            f"Successfully destroyed consumer group '{group_name}' on stream '{key}'"
+            f"Successfully destroyed consumer group '{group_name}' on stream '{key}' for tenant {tenant_id}"
             if result
-            else f"Consumer group '{group_name}' not found on stream '{key}'"
+            else f"Consumer group '{group_name}' not found on stream '{key}' for tenant {tenant_id}"
         )
     except RedisError as e:
         return f"Error destroying consumer group '{group_name}' on stream '{key}': {str(e)}"
@@ -159,8 +194,14 @@ async def xreadgroup(
         return "block_ms must be less than or equal to 5000 milliseconds"
 
     try:
-        r = RedisConnectionManager.get_connection()
-        entries = r.xreadgroup(
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return "Error: No active tenant context detected for this tool execution."
+
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+
+        entries = await r.xreadgroup(
             group_name,
             consumer_name,
             {key: stream_id},
@@ -172,7 +213,7 @@ async def xreadgroup(
             if entries
             else (
                 f"No entries available for consumer '{consumer_name}' in group "
-                f"'{group_name}' on stream '{key}'"
+                f"'{group_name}' on stream '{key}' for tenant {tenant_id}"
             )
         )
     except RedisError as e:
@@ -198,11 +239,17 @@ async def xack(key: str, group_name: str, entry_ids: List[str]) -> str:
         return "At least one entry ID is required to acknowledge stream entries"
 
     try:
-        r = RedisConnectionManager.get_connection()
-        acknowledged = r.xack(key, group_name, *entry_ids)
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return "Error: No active tenant context detected for this tool execution."
+
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+
+        acknowledged = await r.xack(key, group_name, *entry_ids)
         return (
             f"Successfully acknowledged {acknowledged} entr"
-            f"{'y' if acknowledged == 1 else 'ies'} in group '{group_name}' on stream '{key}'"
+            f"{'y' if acknowledged == 1 else 'ies'} in group '{group_name}' on stream '{key}' for tenant {tenant_id}"
         )
     except RedisError as e:
         return (

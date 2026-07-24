@@ -1,9 +1,12 @@
+
+
+
 import asyncio
 from typing import Any, Dict
-
 from redis.exceptions import RedisError
+import redis.asyncio as aioredis
 
-from src.common.connection import RedisConnectionManager
+from src.common.connection import current_tenant_id, tenant_redis_manager
 from src.common.server import mcp
 from src.common.subscription_manager import (
     SubscriptionLimitExceededError,
@@ -23,9 +26,15 @@ async def publish(channel: str, message: str) -> str:
         A success message or an error message.
     """
     try:
-        r = RedisConnectionManager.get_connection()
-        r.publish(channel, message)
-        return f"Message published to channel '{channel}'."
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return "Error: No active tenant context detected for this tool execution."
+
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+
+        await r.publish(channel, message)
+        return f"Message published to channel '{channel}' for tenant {tenant_id}."
     except RedisError as e:
         return f"Error publishing message to channel '{channel}': {str(e)}"
 
@@ -41,7 +50,13 @@ async def subscribe(channel: str) -> Dict[str, Any]:
         A dictionary containing the subscription ID or an error message.
     """
     try:
-        r = RedisConnectionManager.get_connection()
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return {"error": "No active tenant context detected for this tool execution."}
+
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+
         subscription = await asyncio.to_thread(
             SubscriptionManager.subscribe,
             r,
@@ -65,7 +80,13 @@ async def psubscribe(pattern: str) -> Dict[str, Any]:
         A dictionary containing the subscription ID or an error message.
     """
     try:
-        r = RedisConnectionManager.get_connection()
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return {"error": "No active tenant context detected for this tool execution."}
+
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+
         subscription = await asyncio.to_thread(
             SubscriptionManager.psubscribe,
             r,
@@ -84,16 +105,7 @@ async def psubscribe(pattern: str) -> Dict[str, Any]:
 async def read_messages(
     subscription_id: str, timeout_ms: int = 1000, max_messages: int = 10
 ) -> Dict[str, Any]:
-    """Read pending pub/sub messages for an existing subscription.
-
-    Args:
-        subscription_id: The ID returned by subscribe() or psubscribe().
-        timeout_ms: Time to wait for messages in milliseconds. Use 0 for non-blocking.
-        max_messages: Maximum number of messages to return in one call.
-
-    Returns:
-        A dictionary containing the collected messages or an error message.
-    """
+    """Read pending pub/sub messages for an existing subscription."""
     if timeout_ms < 0:
         return {"error": "timeout_ms must be greater than or equal to 0"}
     if timeout_ms > 5000:
@@ -122,14 +134,7 @@ async def read_messages(
 
 @mcp.tool()
 async def unsubscribe(subscription_id: str) -> Dict[str, Any]:
-    """Unsubscribe and close an existing pub/sub subscription.
-
-    Args:
-        subscription_id: The ID returned by subscribe() or psubscribe().
-
-    Returns:
-        A dictionary describing the closed subscription or an error message.
-    """
+    """Unsubscribe and close an existing pub/sub subscription."""
     try:
         return await asyncio.to_thread(
             SubscriptionManager.unsubscribe,
