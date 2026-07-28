@@ -12,7 +12,11 @@ def load_tools():
 
 # Initialize FastMCP server
 mcp = FastMCP(
-    "Redis MCP Server", dependencies=["redis", "python-dotenv", "numpy", "aiohttp"]
+    "Redis MCP Server", 
+    # dependencies=["redis", "python-dotenv", "numpy", "aiohttp"]
+    stateless_http=True,
+    json_response=True,
+    streamable_http_path="/" 
 )
 
 # Load tools

@@ -1,10 +1,12 @@
+
+# src/tools/redis_tools.py
 import json
 from typing import Union, Optional
-
 from redis.exceptions import RedisError
-from redis import Redis
+import redis.asyncio as aioredis
 
-from src.common.connection import RedisConnectionManager
+# CHANGED: Import the actual new variable 'tenant_redis_manager'
+from src.common.connection import current_tenant_id, tenant_redis_manager
 from src.common.server import mcp
 
 
@@ -35,13 +37,27 @@ async def set(
         encoded_value = encoded_value.encode("utf-8")
 
     try:
-        r: Redis = RedisConnectionManager.get_connection()
+        # 1. Safely fetch active tenant ID from context (kept for logging string below)
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return "Error: No active tenant context detected for this tool execution."
+        
+        # 2. CHANGED: Use native get_client() mapped to tenant_redis_manager
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+        
+        # 3. Target the client pool asynchronously
         if expiration:
-            r.setex(key, expiration, encoded_value)
+            await r.setex(key, expiration, encoded_value)
         else:
-            r.set(key, encoded_value)
+            await r.set(key, encoded_value)
 
-        return f"Successfully set {key}" + (
+        # Architectural check: safely read connection pool kwargs fallback
+        pool = getattr(r, "connection_pool", None)
+        kwargs = getattr(pool, "connection_kwargs", {}) if pool else {}
+        db_index = kwargs.get('db', 0)
+        
+        return f"Successfully set {key} for tenant {tenant_id} (DB {db_index})" + (
             f" with expiration {expiration} seconds" if expiration else ""
         )
     except RedisError as e:
@@ -49,29 +65,37 @@ async def set(
 
 
 @mcp.tool()
-async def get(key: str) -> Union[str, bytes]:
+async def get(key: str) -> str:
     """Get a Redis string value.
 
     Args:
         key (str): The key to retrieve.
 
     Returns:
-        str, bytes: The stored value or an error message.
+        str: The stored value or an error message.
     """
     try:
-        r: Redis = RedisConnectionManager.get_connection()
-        value = r.get(key)
+        # 1. Safely fetch active tenant ID from context (kept for logging string below)
+        try:
+            tenant_id = current_tenant_id.get()
+        except LookupError:
+            return "Error: No active tenant context detected for this tool execution."
+        
+        # 2. CHANGED: Use native get_client() mapped to tenant_redis_manager
+        r: aioredis.Redis = await tenant_redis_manager.get_client()
+        
+        # 3. Await the async read operation
+        value = await r.get(key)
 
         if value is None:
-            return f"Key {key} does not exist"
+            return f"Key '{key}' does not exist for tenant {tenant_id}"
 
         if isinstance(value, bytes):
             try:
-                text = value.decode("utf-8")
-                return text
+                return value.decode("utf-8")
             except UnicodeDecodeError:
-                return value
+                return str(value)
 
-        return value
+        return str(value)
     except RedisError as e:
         return f"Error retrieving key {key}: {str(e)}"

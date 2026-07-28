@@ -1,14 +1,11 @@
+
 import logging
 import os
 import sys
 
 
 def resolve_log_level() -> int:
-    """Resolve desired log level from MCP_REDIS_LOG_LEVEL.
-
-    Accepts numeric strings or standard level names (DEBUG, INFO, WARNING,
-    ERROR, CRITICAL, NOTSET) including aliases WARN and FATAL. Defaults to WARNING.
-    """
+    """Resolve desired log level from MCP_REDIS_LOG_LEVEL environment variable."""
     name = os.getenv("MCP_REDIS_LOG_LEVEL")
     if name:
         s = name.strip()
@@ -19,47 +16,43 @@ def resolve_log_level() -> int:
         level = getattr(logging, s.upper(), None)
         if isinstance(level, int):
             return level
-    return logging.WARNING
+    return logging.INFO
 
 
 def configure_logging() -> int:
-    """Configure logging based on environment.
+    """Configure clean single-line stderr logging.
 
-    - Default level WARNING
-    - MCP_REDIS_LOG_LEVEL to override
-
-    Returns the resolved log level. Idempotent.
+    Removes third-party wrapping handlers (e.g. RichHandler installed by FastMCP/Typer)
+    and enforces a standard clean log layout across all modules.
     """
-
     level = resolve_log_level()
     root = logging.getLogger()
 
-    # Always set the root logger level
     root.setLevel(level)
 
-    # Only lower overly-restrictive handler thresholds to avoid host filtering.
-    # - Leave NOTSET (0) alone so it defers to logger/root levels
-    # - Do not raise handler thresholds (respect host-configured verbosity)
-    for h in root.handlers:
-        try:
-            cur = getattr(h, "level", None)
-            if isinstance(cur, int) and cur != logging.NOTSET and cur > level:
-                h.setLevel(level)
-        except Exception:
-            # Log at DEBUG to avoid noisy stderr while still providing diagnostics.
-            logging.getLogger(__name__).debug(
-                "Failed to adjust handler level for handler %r", h, exc_info=True
-            )
+    # Standard clean log formatter for terminal output
+    formatter = logging.Formatter(
+        fmt="%(asctime)s | %(levelname)-5s | %(message)s",
+        datefmt="%H:%M:%S"
+    )
 
-    # Only add our own stderr handler if there are NO handlers at all.
-    # Many hosts (pytest, uv, VS Code) install a console handler already.
-    if not root.handlers:
-        sh = logging.StreamHandler(sys.stderr)
-        sh.setLevel(level)
-        sh.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
-        root.addHandler(sh)
+    # Remove all default/Rich handlers attached by FastMCP or third-party packages
+    # that cause vertical column wrapping
+    for h in list(root.handlers):
+        root.removeHandler(h)
 
-    # Route warnings.warn(...) through logging
+    # Create a single clean StreamHandler pointing to sys.stderr
+    stderr_handler = logging.StreamHandler(sys.stderr)
+    stderr_handler.setLevel(level)
+    stderr_handler.setFormatter(formatter)
+    root.addHandler(stderr_handler)
+
+    # Ensure Uvicorn uses the root handlers and doesn't re-wrap logs
+    for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access", "mcp"):
+        u_logger = logging.getLogger(logger_name)
+        u_logger.handlers = []
+        u_logger.propagate = True
+        u_logger.setLevel(level)
+
     logging.captureWarnings(True)
-
     return level
