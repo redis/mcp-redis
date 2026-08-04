@@ -2225,7 +2225,7 @@ wheels = [
 
 [[package]]
 name = "redis-mcp-server"
-version = "0.5.0"
+version = "0.5.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -2265,7 +2265,7 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3.13.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "dotenv", specifier = ">=0.9.9" },
-    { name = "mcp", extras = ["cli"], specifier = ">=1.9.4" },
+    { name = "mcp", extras = ["cli"], specifier = ">=1.9.4,<2" },
     { name = "numpy", specifier = ">=2.2.4" },
     { name = "redis", specifier = ">=6.0.0" },
     { name = "redis-entraid", specifier = ">=1.0.0" },
