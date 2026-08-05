@@ -1,5 +1,7 @@
 # Redis MCP Server
 
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2Fredis%2Fmcp-redis.svg)](https://mcptoplist.com/server/glama%2Fredis%2Fmcp-redis)
+
 <!-- mcp-name: io.github.redis/mcp-redis -->
 
 [![Integration](https://github.com/redis/mcp-redis/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/redis/mcp-redis/actions/workflows/ci.yml)
