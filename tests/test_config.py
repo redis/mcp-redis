@@ -80,6 +80,22 @@ class TestParseRedisURI:
         assert result["ssl_certfile"] == "/cert.pem"
         assert result["ssl_ca_path"] == "/ca.pem"
 
+    def test_parse_uri_with_ssl_check_hostname(self):
+        """Test parsing URI with ssl_check_hostname query parameter."""
+        uri = "rediss://localhost:6379/0?ssl_check_hostname=false"
+        result = parse_redis_uri(uri)
+
+        assert result["ssl"] is True
+        assert result["ssl_check_hostname"] is False
+
+    def test_parse_uri_with_ssl_check_hostname_true(self):
+        """Test parsing URI with ssl_check_hostname set to true."""
+        uri = "rediss://localhost:6379/0?ssl_check_hostname=true"
+        result = parse_redis_uri(uri)
+
+        assert result["ssl"] is True
+        assert result["ssl_check_hostname"] is True
+
     def test_parse_uri_defaults(self):
         """Test parsing URI with default values."""
         uri = "redis://example.com"
@@ -286,3 +302,73 @@ class TestRedisConfigDefaults:
         assert config["port"] == 6380
         assert config["ssl"] is True
         assert config["cluster_mode"] is True
+
+    @patch.dict(
+        os.environ,
+        {
+            "REDIS_SSL": "true",
+            "REDIS_SSL_CERT_REQS": "none",
+        },
+    )
+    @patch("src.common.config.load_dotenv")
+    def test_ssl_check_hostname_disabled_with_cert_reqs_none(self, mock_load_dotenv):
+        """Test that ssl_check_hostname is disabled by default when ssl_cert_reqs is none."""
+        # Re-import to get fresh config
+        import importlib
+
+        import src.common.config
+
+        importlib.reload(src.common.config)
+
+        config = src.common.config.REDIS_CFG
+
+        assert config["ssl"] is True
+        assert config["ssl_cert_reqs"] == "none"
+        assert config["ssl_check_hostname"] is False
+
+    @patch.dict(
+        os.environ,
+        {
+            "REDIS_SSL": "true",
+            "REDIS_SSL_CERT_REQS": "required",
+        },
+    )
+    @patch("src.common.config.load_dotenv")
+    def test_ssl_check_hostname_enabled_with_cert_reqs_required(self, mock_load_dotenv):
+        """Test that ssl_check_hostname is enabled by default when ssl_cert_reqs is required."""
+        # Re-import to get fresh config
+        import importlib
+
+        import src.common.config
+
+        importlib.reload(src.common.config)
+
+        config = src.common.config.REDIS_CFG
+
+        assert config["ssl"] is True
+        assert config["ssl_cert_reqs"] == "required"
+        assert config["ssl_check_hostname"] is True
+
+    @patch.dict(
+        os.environ,
+        {
+            "REDIS_SSL": "true",
+            "REDIS_SSL_CERT_REQS": "none",
+            "REDIS_SSL_CHECK_HOSTNAME": "true",
+        },
+    )
+    @patch("src.common.config.load_dotenv")
+    def test_ssl_check_hostname_override(self, mock_load_dotenv):
+        """Test that ssl_check_hostname can be explicitly overridden."""
+        # Re-import to get fresh config
+        import importlib
+
+        import src.common.config
+
+        importlib.reload(src.common.config)
+
+        config = src.common.config.REDIS_CFG
+
+        assert config["ssl"] is True
+        assert config["ssl_cert_reqs"] == "none"
+        assert config["ssl_check_hostname"] is True
