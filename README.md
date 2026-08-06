@@ -37,6 +37,7 @@ The Redis MCP Server is a **natural language interface** designed for agentic ap
   - [With Docker](#with-docker)
 - [Configuration](#configuration)
   - [Redis ACL](#redis-acl)
+  - [Restricting the exposed tools](#restricting-the-exposed-tools)
   - [Configuration via command line arguments](#configuration-via-command-line-arguments)
   - [Configuration via Environment Variables](#configuration-via-environment-variables)
   - [EntraID Authentication for Azure Managed Redis](#entraid-authentication-for-azure-managed-redis)
@@ -298,6 +299,45 @@ You can configure Redis ACL to restrict the access to the Redis database. For ex
 
 Configure the user via command line arguments or environment variables.
 
+Redis ACL restricts what the server may *execute*. It does not change which tools
+the server *offers* — a rejected command still comes back as a tool error after the
+agent has already decided to call it. To control the offered tools, see
+[Restricting the exposed tools](#restricting-the-exposed-tools).
+
+### Restricting the exposed tools
+
+By default the server exposes every tool. Set `MCP_REDIS_ALLOWED_TOOLS` to a
+comma-separated list of tool names to expose only those:
+
+```sh
+MCP_REDIS_ALLOWED_TOOLS="get,set,hget,hgetall,dbsize" redis-mcp-server --url redis://localhost:6379/0
+```
+
+Tools left out of the list are not registered at all, so they never appear in
+`tools/list`. This matters for agents: a tool that is visible can be planned
+around even when every call to it would be refused.
+
+Because the list is an allowlist, a tool added in a future release stays
+unavailable until you name it. Every name must match an existing tool — an
+unknown name aborts startup rather than being ignored, since silently dropping it
+would expose fewer tools than configured while looking like a working setup.
+
+In your MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "redis": {
+      "command": "uvx",
+      "args": ["--from", "redis-mcp-server@latest", "redis-mcp-server", "--url", "redis://localhost:6379/0"],
+      "env": {
+        "MCP_REDIS_ALLOWED_TOOLS": "get,set,hget,hgetall,dbsize"
+      }
+    }
+  }
+}
+```
+
 ### Configuration via command line arguments
 
 When using the CLI interface, you can configure the server with command line arguments:
@@ -354,6 +394,7 @@ If desired, you can use environment variables. Defaults are provided for all var
 | `REDIS_SSL_CERT_REQS`| Whether the client should verify the server's certificate | `"required"`  |
 | `REDIS_SSL_CA_CERTS` | Path to the trusted CA certificates file                  | None          |
 | `REDIS_CLUSTER_MODE` | Enable Redis Cluster mode                                 | `False`       |
+| `MCP_REDIS_ALLOWED_TOOLS` | Comma-separated names of the only tools to expose ([details](#restricting-the-exposed-tools)) | All tools |
 
 
 ### EntraID Authentication for Azure Managed Redis
