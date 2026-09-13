@@ -12,6 +12,16 @@ DEFAULT_TOKEN_REQUEST_EXECUTION_TIMEOUT_MS = 10000  # 10 seconds
 DEFAULT_RETRY_MAX_ATTEMPTS = 3
 DEFAULT_RETRY_DELAY_MS = 100
 
+
+def _parse_redis_protocol(value: str | int | None) -> int | None:
+    """Validate an explicit RESP version, preserving the client default."""
+    if value is None:
+        return None
+    if str(value).strip() not in ("2", "3"):
+        raise ValueError("Redis protocol must be 2 or 3")
+    return int(value)
+
+
 REDIS_CFG = {
     "host": os.getenv("REDIS_HOST", "127.0.0.1"),
     "port": int(os.getenv("REDIS_PORT", 6379)),
@@ -25,6 +35,7 @@ REDIS_CFG = {
     "ssl_ca_certs": os.getenv("REDIS_SSL_CA_CERTS", None),
     "cluster_mode": os.getenv("REDIS_CLUSTER_MODE", False) in ("true", "1", "t"),
     "db": int(os.getenv("REDIS_DB", 0)),
+    "protocol": _parse_redis_protocol(os.getenv("REDIS_PROTOCOL")),
 }
 
 # Entra ID Authentication Configuration
@@ -148,7 +159,9 @@ def parse_redis_uri(uri: str) -> dict:
 
 def set_redis_config_from_cli(config: dict):
     for key, value in config.items():
-        if key in ["port", "db"]:
+        if key == "protocol":
+            REDIS_CFG[key] = _parse_redis_protocol(value)
+        elif key in ["port", "db"]:
             # Keep port and db as integers
             REDIS_CFG[key] = int(value)
         elif key == "ssl" or key == "cluster_mode":

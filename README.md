@@ -675,6 +675,19 @@ For more information, see the [VS Code documentation](https://code.visualstudio.
 > **Note:** Starting with [VS Code v1.102](https://code.visualstudio.com/updates/v1_102),
 > MCP servers are now stored in a dedicated `mcp.json` file instead of `settings.json`.
 
+### Redis protocol compatibility
+
+Use `--protocol 2` or `REDIS_PROTOCOL=2` to force RESP2 when connecting to Redis
+4.x/5.x or a compatible proxy that does not support RESP3 negotiation. Select
+`3` to explicitly request RESP3 on a compatible server. The option applies to
+standalone and cluster clients, including connections configured with `--url`.
+An explicit CLI value overrides the environment. If neither is supplied, the
+redis-py default is unchanged. Values other than `2` or `3` are rejected.
+
+```sh
+redis-mcp-server --url redis://localhost:6379/0 --protocol 2
+```
+
 ## Testing
 
 You can use the [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) for visual debugging of this MCP Server.
