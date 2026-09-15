@@ -681,8 +681,10 @@ Use `--protocol 2` or `REDIS_PROTOCOL=2` to force RESP2 when connecting to Redis
 4.x/5.x or a compatible proxy that does not support RESP3 negotiation. Select
 `3` to explicitly request RESP3 on a compatible server. The option applies to
 standalone and cluster clients, including connections configured with `--url`.
-An explicit CLI value overrides the environment. If neither is supplied, the
-redis-py default is unchanged. Values other than `2` or `3` are rejected.
+An explicit CLI value overrides the environment. If neither is supplied,
+redis-py's own default applies (RESP2 on redis-py 6.x/7.x, RESP3 on 8.x). Set
+`2` explicitly when targeting Redis < 6 or a RESP2-only proxy. Values other
+than `2` or `3` are rejected.
 
 ```sh
 redis-mcp-server --url redis://localhost:6379/0 --protocol 2
