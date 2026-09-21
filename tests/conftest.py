@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 import redis
 from redis.exceptions import ConnectionError, RedisError, TimeoutError
+from redis.sentinel import Sentinel
 
 
 @pytest.fixture
@@ -20,6 +21,13 @@ def mock_redis():
 def mock_redis_cluster():
     """Create a mock Redis Cluster connection."""
     mock = Mock(spec=redis.cluster.RedisCluster)
+    return mock
+
+
+@pytest.fixture
+def mock_redis_sentinel():
+    """Create a mock Redis Sentinel client."""
+    mock = Mock(spec=Sentinel)
     return mock
 
 
@@ -50,6 +58,11 @@ def redis_config():
         "ssl_cert_reqs": "required",
         "ssl_ca_certs": None,
         "cluster_mode": False,
+        "topology": "standalone",
+        "sentinel_master_name": None,
+        "sentinel_nodes": [],
+        "sentinel_username": None,
+        "sentinel_password": None,
     }
 
 
@@ -62,6 +75,8 @@ def redis_uri_samples():
         "ssl": "rediss://user:pass@localhost:6379/0",
         "with_query": "redis://localhost:6379/0?ssl_cert_reqs=required",
         "cluster": "redis://localhost:6379/0?cluster_mode=true",
+        "cluster_topology": "redis://localhost:6379/0?topology=cluster",
+        "sentinel": "redis://localhost:6379/0?topology=sentinel&sentinel_master_name=mymaster&sentinel_nodes=host1:26379,host2:26380",
     }
 
 
