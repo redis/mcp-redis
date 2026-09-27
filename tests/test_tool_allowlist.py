@@ -63,9 +63,11 @@ class TestParseAllowedTools:
             "set_value",
         }
 
-    def test_empty_string_allows_nothing(self):
-        """An empty allowlist is still an allowlist, unlike an unset one."""
-        assert parse_allowed_tools("") == set()
+    @pytest.mark.parametrize("value", ["", "   ", ",", " , ,, "])
+    def test_rejects_an_allowlist_that_names_no_tools(self, value):
+        """Set but empty is a misconfiguration, not a request for zero tools."""
+        with pytest.raises(ValueError, match="names no tools"):
+            parse_allowed_tools(value)
 
 
 class TestSelectDisallowedTools:
@@ -79,13 +81,6 @@ class TestSelectDisallowedTools:
 
     def test_returns_nothing_when_every_tool_is_allowed(self):
         assert select_disallowed_tools(set(REGISTERED), REGISTERED) == []
-
-    def test_returns_every_tool_for_an_empty_allowlist(self):
-        assert select_disallowed_tools(set(), REGISTERED) == [
-            "delete_value",
-            "get_value",
-            "set_value",
-        ]
 
     def test_rejects_a_misspelled_name(self):
         with pytest.raises(ValueError) as excinfo:
@@ -136,11 +131,17 @@ class TestApplyToolAllowlist:
 
         assert await tool_names(server) == ["get_value"]
 
-    async def test_empty_allowlist_removes_every_tool(self):
+    async def test_empty_allowlist_raises_and_leaves_the_server_untouched(self):
         server = build_server()
-        apply_tool_allowlist(server, "")
 
-        assert await tool_names(server) == []
+        with pytest.raises(ValueError):
+            apply_tool_allowlist(server, "")
+
+        assert await tool_names(server) == [
+            "delete_value",
+            "get_value",
+            "set_value",
+        ]
 
     async def test_unknown_name_raises_and_leaves_the_server_untouched(self):
         server = build_server()

@@ -321,6 +321,8 @@ Because the list is an allowlist, a tool added in a future release stays
 unavailable until you name it. Every name must match an existing tool — an
 unknown name aborts startup rather than being ignored, since silently dropping it
 would expose fewer tools than configured while looking like a working setup.
+For the same reason a variable that is set but names no tool (empty, blank or
+only commas) aborts startup too; unset it to expose every tool.
 
 In your MCP client configuration:
 

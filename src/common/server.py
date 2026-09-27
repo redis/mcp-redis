@@ -20,12 +20,23 @@ def parse_allowed_tools(allowed_tools: Optional[str]) -> Optional[set]:
 
     Returns None when no allowlist is configured, meaning every tool stays
     available.
+
+    Raises:
+        ValueError: if the variable is set but names no tool (empty, blank or
+            only commas). That is almost always a misconfiguration, such as an
+            unset shell variable expanded into the environment, and applying it
+            would start a server with no tools and no hint as to why.
     """
     if allowed_tools is None:
         return None
 
     names = {name.strip() for name in allowed_tools.split(",")}
     names.discard("")
+    if not names:
+        raise ValueError(
+            f"{ALLOWED_TOOLS_ENV_VAR} is set but names no tools. "
+            f"Unset it to expose every tool, or list the tools to expose."
+        )
     return names
 
 
