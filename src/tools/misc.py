@@ -4,6 +4,11 @@ import aiohttp
 
 from redis.exceptions import RedisError
 
+from src.common.annotations import (
+    READ_ONLY,
+    WRITE_DESTRUCTIVE,
+    WRITE_DESTRUCTIVE_NOT_IDEMPOTENT,
+)
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 from src.common.config import MCP_DOCS_SEARCH_URL
@@ -12,7 +17,7 @@ from src.version import __version__
 DOCS_SEARCH_TIMEOUT_SECONDS = 10
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def delete(key: str) -> str:
     """Delete a Redis key.
 
@@ -30,7 +35,7 @@ async def delete(key: str) -> str:
         return f"Error deleting key {key}: {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def type(key: str) -> Dict[str, Any]:
     """Returns the string representation of the type of the value stored at key
 
@@ -50,7 +55,9 @@ async def type(key: str) -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-@mcp.tool()
+# Destructive: the key is removed once the TTL elapses, and an
+# existing TTL is replaced.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def expire(name: str, expire_seconds: int) -> str:
     """Set an expiration time for a Redis key.
 
@@ -73,7 +80,9 @@ async def expire(name: str, expire_seconds: int) -> str:
         return f"Error setting expiration for key '{name}': {str(e)}"
 
 
-@mcp.tool()
+# Destructive twice over: it overwrites new_key and, once the source
+# is gone, a second call cannot repeat the first.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE_NOT_IDEMPOTENT)
 async def rename(old_key: str, new_key: str) -> Dict[str, Any]:
     """
     Renames a Redis key from old_key to new_key.
@@ -105,7 +114,7 @@ async def rename(old_key: str, new_key: str) -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def scan_keys(
     pattern: str = "*", count: int = 100, cursor: int = 0
 ) -> Union[str, Dict[str, Any]]:
@@ -159,7 +168,7 @@ async def scan_keys(
         return f"Error scanning keys with pattern '{pattern}': {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def scan_all_keys(
     pattern: str = "*", batch_size: int = 100
 ) -> Union[str, List[str]]:
@@ -202,7 +211,7 @@ async def scan_all_keys(
         return f"Error scanning all keys with pattern '{pattern}': {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def search_redis_documents(
     question: str,
 ) -> Union[List[Dict[str, Any]], Dict[str, Any]]:

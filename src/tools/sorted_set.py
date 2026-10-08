@@ -2,11 +2,16 @@ from typing import Optional
 
 from redis.exceptions import RedisError
 
+from src.common.annotations import (
+    READ_ONLY,
+    WRITE_ADDITIVE_IDEMPOTENT,
+    WRITE_DESTRUCTIVE,
+)
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_ADDITIVE_IDEMPOTENT)
 async def zadd(
     key: str, score: float, member: str, expiration: Optional[int] = None
 ) -> str:
@@ -33,7 +38,7 @@ async def zadd(
         return f"Error adding to sorted set {key}: {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def zrange(key: str, start: int, end: int, with_scores: bool = False) -> str:
     """Retrieve a range of members from a Redis sorted set.
 
@@ -56,7 +61,7 @@ async def zrange(key: str, start: int, end: int, with_scores: bool = False) -> s
         return f"Error retrieving sorted set {key}: {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def zrem(key: str, member: str) -> str:
     """Remove a member from a Redis sorted set.
 
