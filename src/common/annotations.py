@@ -18,6 +18,14 @@ The presets below are named after the hints they set rather than after a Redis
 command group, so that assigning one to a new tool is a question about what the
 command does to the data, not about which file it lives in.
 
+What counts as destructive here: a tool is destructive if any call it can make
+replaces or removes data that was already there. That covers replacing a value
+in place, as `set`, `hset` and `zadd` do, and it also covers the optional
+`expiration` argument several writing tools take, because the TTL lands on a
+key that may already hold data the caller did not put there, and the whole key
+goes when it elapses. The hints are per tool and the protocol's wording is
+"may", so a tool that can do this on some calls says so on all of them.
+
 `openWorldHint` is false on all but one tool: they talk to the one Redis
 instance the server was configured with. The hint is about whether the set of
 entities a tool can reach is open-ended, as it is for a web search, not about

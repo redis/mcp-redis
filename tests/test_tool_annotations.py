@@ -32,8 +32,8 @@ WRITE_TOOLS = {
     "json_set": {"destructiveHint": True, "idempotentHint": True},
     "json_del": {"destructiveHint": True, "idempotentHint": True},
     # list
-    "lpush": {"destructiveHint": False, "idempotentHint": False},
-    "rpush": {"destructiveHint": False, "idempotentHint": False},
+    "lpush": {"destructiveHint": True, "idempotentHint": False},
+    "rpush": {"destructiveHint": True, "idempotentHint": False},
     "lpop": {"destructiveHint": True, "idempotentHint": False},
     "rpop": {"destructiveHint": True, "idempotentHint": False},
     "lrem": {"destructiveHint": True, "idempotentHint": False},
@@ -50,13 +50,13 @@ WRITE_TOOLS = {
     # query engine
     "create_vector_index_hash": {"destructiveHint": False, "idempotentHint": False},
     # set
-    "sadd": {"destructiveHint": False, "idempotentHint": True},
+    "sadd": {"destructiveHint": True, "idempotentHint": True},
     "srem": {"destructiveHint": True, "idempotentHint": True},
     # sorted set
-    "zadd": {"destructiveHint": False, "idempotentHint": True},
+    "zadd": {"destructiveHint": True, "idempotentHint": True},
     "zrem": {"destructiveHint": True, "idempotentHint": True},
     # stream
-    "xadd": {"destructiveHint": False, "idempotentHint": False},
+    "xadd": {"destructiveHint": True, "idempotentHint": False},
     "xdel": {"destructiveHint": True, "idempotentHint": True},
     "xgroup_create": {"destructiveHint": False, "idempotentHint": False},
     "xgroup_destroy": {"destructiveHint": True, "idempotentHint": True},

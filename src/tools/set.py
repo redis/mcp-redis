@@ -4,14 +4,15 @@ from redis.exceptions import RedisError
 
 from src.common.annotations import (
     READ_ONLY,
-    WRITE_ADDITIVE_IDEMPOTENT,
     WRITE_DESTRUCTIVE,
 )
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
-@mcp.tool(annotations=WRITE_ADDITIVE_IDEMPOTENT)
+# Destructive through `expire`: adding a member is additive, but the optional
+# TTL lands on the whole set.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def sadd(name: str, value: str, expire_seconds: Optional[int] = None) -> str:
     """Add a value to a Redis set with an optional expiration time.
 

@@ -6,14 +6,15 @@ from redis.typing import FieldT
 
 from src.common.annotations import (
     READ_ONLY,
-    WRITE_ADDITIVE,
     WRITE_DESTRUCTIVE_NOT_IDEMPOTENT,
 )
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
-@mcp.tool(annotations=WRITE_ADDITIVE)
+# Destructive through `expire`: the optional TTL lands on the whole list,
+# including elements this call did not push.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE_NOT_IDEMPOTENT)
 async def lpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
     """Push a value onto the left of a Redis list and optionally set an expiration time."""
     try:
@@ -26,7 +27,9 @@ async def lpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
         return f"Error pushing value to list '{name}': {str(e)}"
 
 
-@mcp.tool(annotations=WRITE_ADDITIVE)
+# Destructive through `expire`: the optional TTL lands on the whole list,
+# including elements this call did not push.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE_NOT_IDEMPOTENT)
 async def rpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
     """Push a value onto the right of a Redis list and optionally set an expiration time."""
     try:

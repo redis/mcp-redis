@@ -7,12 +7,15 @@ from src.common.annotations import (
     WRITE_ADDITIVE,
     WRITE_ADDITIVE_IDEMPOTENT,
     WRITE_DESTRUCTIVE,
+    WRITE_DESTRUCTIVE_NOT_IDEMPOTENT,
 )
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
-@mcp.tool(annotations=WRITE_ADDITIVE)
+# Destructive through `expire`: appending an entry is additive, but the
+# optional TTL lands on the whole stream.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE_NOT_IDEMPOTENT)
 async def xadd(
     key: str, fields: Dict[str, Any], expiration: Optional[int] = None
 ) -> str:

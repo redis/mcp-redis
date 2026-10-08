@@ -4,14 +4,15 @@ from redis.exceptions import RedisError
 
 from src.common.annotations import (
     READ_ONLY,
-    WRITE_ADDITIVE_IDEMPOTENT,
     WRITE_DESTRUCTIVE,
 )
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
-@mcp.tool(annotations=WRITE_ADDITIVE_IDEMPOTENT)
+# Destructive twice over: ZADD replaces the score of a member that already
+# exists, and the optional TTL lands on the whole sorted set.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def zadd(
     key: str, score: float, member: str, expiration: Optional[int] = None
 ) -> str:
