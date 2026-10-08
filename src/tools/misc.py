@@ -6,6 +6,7 @@ from redis.exceptions import RedisError
 
 from src.common.annotations import (
     READ_ONLY,
+    READ_ONLY_OPEN_WORLD,
     WRITE_DESTRUCTIVE,
     WRITE_DESTRUCTIVE_NOT_IDEMPOTENT,
 )
@@ -211,7 +212,10 @@ async def scan_all_keys(
         return f"Error scanning all keys with pattern '{pattern}': {str(e)}"
 
 
-@mcp.tool(annotations=READ_ONLY)
+# Open-world: this one does not talk to the configured Redis instance. It is
+# an HTTP request to the docs service at MCP_DOCS_SEARCH_URL, which is a web
+# search in the sense the hint is about.
+@mcp.tool(annotations=READ_ONLY_OPEN_WORLD)
 async def search_redis_documents(
     question: str,
 ) -> Union[List[Dict[str, Any]], Dict[str, Any]]:

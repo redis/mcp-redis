@@ -18,10 +18,12 @@ The presets below are named after the hints they set rather than after a Redis
 command group, so that assigning one to a new tool is a question about what the
 command does to the data, not about which file it lives in.
 
-`openWorldHint` is false throughout: every tool here talks to the one Redis
+`openWorldHint` is false on all but one tool: they talk to the one Redis
 instance the server was configured with. The hint is about whether the set of
 entities a tool can reach is open-ended, as it is for a web search, not about
-whether the call leaves the process.
+whether the call leaves the process. The exception is
+`search_redis_documents`, which queries the docs service at
+MCP_DOCS_SEARCH_URL and is a web search in exactly that sense.
 """
 
 from mcp.types import ToolAnnotations
@@ -32,6 +34,16 @@ READ_ONLY = ToolAnnotations(
     readOnlyHint=True,
     destructiveHint=False,
     openWorldHint=False,
+)
+
+# A read that leaves the process: it queries the Redis docs service rather than
+# the configured instance, so what it can reach is open-ended in the way the
+# spec means. Separate from READ_ONLY so that claiming an open world stays a
+# deliberate choice for the one tool that has to make it.
+READ_ONLY_OPEN_WORLD = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    openWorldHint=True,
 )
 
 # Brings new data into being and leaves what is already stored alone. Running it

@@ -17,6 +17,12 @@ from src.common.server import mcp
 #
 # Read-only tools are deliberately absent: the test below requires every tool
 # missing from this table to be read-only, which is the stronger statement.
+# The tools that reach something other than the configured Redis instance.
+# `search_redis_documents` is an HTTP request to the docs service at
+# MCP_DOCS_SEARCH_URL, which is the open-ended set of entities the hint is
+# about; everything else is bounded by the one instance.
+OPEN_WORLD_TOOLS = {"search_redis_documents"}
+
 WRITE_TOOLS = {
     # hash
     "hset": {"destructiveHint": True, "idempotentHint": True},
@@ -109,12 +115,22 @@ class TestToolAnnotations:
             assert isinstance(annotations.destructiveHint, bool), name
             assert isinstance(annotations.openWorldHint, bool), name
 
-    async def test_no_tool_reaches_beyond_the_configured_redis(
+    async def test_only_the_docs_search_reaches_beyond_the_configured_redis(
         self, annotations_by_tool
     ):
-        """Every tool talks to the one Redis instance and nothing else."""
-        for name, annotations in annotations_by_tool.items():
-            assert annotations.openWorldHint is False, name
+        """Only OPEN_WORLD_TOOLS leaves the configured Redis instance.
+
+        Stated as an exact set rather than a floor, so that a new tool calling
+        out to some other service has to be added here deliberately, and so
+        that a tool losing its outside call has its hint corrected.
+        """
+        open_world = {
+            name
+            for name, annotations in annotations_by_tool.items()
+            if annotations.openWorldHint
+        }
+
+        assert open_world == OPEN_WORLD_TOOLS
 
     async def test_writing_tools_match_the_declared_table(self, annotations_by_tool):
         """Each writing tool carries the hints WRITE_TOOLS declares for it."""
