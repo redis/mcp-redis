@@ -2,11 +2,20 @@ from typing import Dict, Any, Optional, List
 
 from redis.exceptions import RedisError
 
+from src.common.annotations import (
+    READ_ONLY,
+    WRITE_ADDITIVE,
+    WRITE_ADDITIVE_IDEMPOTENT,
+    WRITE_DESTRUCTIVE,
+    WRITE_DESTRUCTIVE_NOT_IDEMPOTENT,
+)
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
-@mcp.tool()
+# Destructive through `expire`: appending an entry is additive, but the
+# optional TTL lands on the whole stream.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE_NOT_IDEMPOTENT)
 async def xadd(
     key: str, fields: Dict[str, Any], expiration: Optional[int] = None
 ) -> str:
@@ -32,7 +41,7 @@ async def xadd(
         return f"Error adding to stream {key}: {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def xrange(key: str, count: int = 1) -> str:
     """Read entries from a Redis stream.
 
@@ -51,7 +60,7 @@ async def xrange(key: str, count: int = 1) -> str:
         return f"Error reading from stream {key}: {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def xdel(key: str, entry_id: str) -> str:
     """Delete an entry from a Redis stream.
 
@@ -74,7 +83,7 @@ async def xdel(key: str, entry_id: str) -> str:
         return f"Error deleting from stream {key}: {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_ADDITIVE)
 async def xgroup_create(
     key: str,
     group_name: str,
@@ -102,7 +111,7 @@ async def xgroup_create(
         )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def xgroup_destroy(key: str, group_name: str) -> str:
     """Destroy a consumer group for a Redis stream.
 
@@ -125,7 +134,9 @@ async def xgroup_destroy(key: str, group_name: str) -> str:
         return f"Error destroying consumer group '{group_name}' on stream '{key}': {str(e)}"
 
 
-@mcp.tool()
+# Not read-only: delivery moves entries into the consumer group's
+# pending list, which is why a second call does not repeat the first.
+@mcp.tool(annotations=WRITE_ADDITIVE)
 async def xreadgroup(
     key: str,
     group_name: str,
@@ -182,7 +193,7 @@ async def xreadgroup(
         )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_ADDITIVE_IDEMPOTENT)
 async def xack(key: str, group_name: str, entry_ids: List[str]) -> str:
     """Acknowledge entries that were processed by a consumer group.
 
