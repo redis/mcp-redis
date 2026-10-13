@@ -11,21 +11,100 @@ DEFAULT_LOWER_REFRESH_BOUND_MILLIS = 30000  # 30 seconds
 DEFAULT_TOKEN_REQUEST_EXECUTION_TIMEOUT_MS = 10000  # 10 seconds
 DEFAULT_RETRY_MAX_ATTEMPTS = 3
 DEFAULT_RETRY_DELAY_MS = 100
+DEFAULT_SENTINEL_PORT = 26379
 
-REDIS_CFG = {
-    "host": os.getenv("REDIS_HOST", "127.0.0.1"),
-    "port": int(os.getenv("REDIS_PORT", 6379)),
-    "username": os.getenv("REDIS_USERNAME", None),
-    "password": os.getenv("REDIS_PWD", ""),
-    "ssl": os.getenv("REDIS_SSL", False) in ("true", "1", "t"),
-    "ssl_ca_path": os.getenv("REDIS_SSL_CA_PATH", None),
-    "ssl_keyfile": os.getenv("REDIS_SSL_KEYFILE", None),
-    "ssl_certfile": os.getenv("REDIS_SSL_CERTFILE", None),
-    "ssl_cert_reqs": os.getenv("REDIS_SSL_CERT_REQS", "required"),
-    "ssl_ca_certs": os.getenv("REDIS_SSL_CA_CERTS", None),
-    "cluster_mode": os.getenv("REDIS_CLUSTER_MODE", False) in ("true", "1", "t"),
-    "db": int(os.getenv("REDIS_DB", 0)),
-}
+
+def parse_bool(value) -> bool:
+    """Parse a value into a boolean using common truthy strings."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in ("true", "1", "t", "yes", "y", "on")
+
+
+def parse_sentinel_nodes(value) -> list[tuple[str, int]]:
+    """Parse sentinel nodes from a comma-separated string or iterable."""
+    if value in (None, ""):
+        return []
+
+    if isinstance(value, list):
+        nodes = value
+    else:
+        nodes = str(value).split(",")
+
+    parsed_nodes = []
+    for node in nodes:
+        if isinstance(node, tuple):
+            host, port = node
+            parsed_nodes.append((str(host), int(port)))
+            continue
+
+        entry = str(node).strip()
+        if not entry:
+            continue
+
+        if ":" in entry:
+            host, port = entry.rsplit(":", 1)
+            parsed_nodes.append((host.strip(), int(port)))
+        else:
+            parsed_nodes.append((entry, DEFAULT_SENTINEL_PORT))
+
+    return parsed_nodes
+
+
+def normalize_topology(topology=None, cluster_mode=False) -> str:
+    """Resolve the effective Redis topology."""
+    if topology:
+        topology = str(topology).strip().lower()
+        if topology not in {"standalone", "sentinel", "cluster"}:
+            raise ValueError(f"Unsupported topology: {topology}")
+        if cluster_mode and topology != "cluster":
+            raise ValueError(
+                "REDIS_CLUSTER_MODE conflicts with REDIS_TOPOLOGY unless topology=cluster"
+            )
+        return topology
+
+    return "cluster" if parse_bool(cluster_mode) else "standalone"
+
+
+def build_redis_config_from_env() -> dict:
+    """Build Redis configuration from environment variables."""
+    cluster_mode = parse_bool(os.getenv("REDIS_CLUSTER_MODE", False))
+    topology = normalize_topology(os.getenv("REDIS_TOPOLOGY"), cluster_mode)
+
+    sentinel_host = os.getenv("REDIS_SENTINEL_HOST", None)
+    sentinel_port = os.getenv("REDIS_SENTINEL_PORT", None)
+    sentinel_nodes = parse_sentinel_nodes(os.getenv("REDIS_SENTINEL_NODES", None))
+    if sentinel_host:
+        sentinel_nodes.append(
+            (
+                sentinel_host,
+                int(sentinel_port or DEFAULT_SENTINEL_PORT),
+            )
+        )
+
+    return {
+        "host": os.getenv("REDIS_HOST", "127.0.0.1"),
+        "port": int(os.getenv("REDIS_PORT", 6379)),
+        "username": os.getenv("REDIS_USERNAME", None),
+        "password": os.getenv("REDIS_PWD", ""),
+        "ssl": parse_bool(os.getenv("REDIS_SSL", False)),
+        "ssl_ca_path": os.getenv("REDIS_SSL_CA_PATH", None),
+        "ssl_keyfile": os.getenv("REDIS_SSL_KEYFILE", None),
+        "ssl_certfile": os.getenv("REDIS_SSL_CERTFILE", None),
+        "ssl_cert_reqs": os.getenv("REDIS_SSL_CERT_REQS", "required"),
+        "ssl_ca_certs": os.getenv("REDIS_SSL_CA_CERTS", None),
+        "cluster_mode": topology == "cluster",
+        "topology": topology,
+        "db": int(os.getenv("REDIS_DB", 0)),
+        "sentinel_master_name": os.getenv("REDIS_SENTINEL_MASTER_NAME", None),
+        "sentinel_nodes": sentinel_nodes,
+        "sentinel_username": os.getenv("REDIS_SENTINEL_USERNAME", None),
+        "sentinel_password": os.getenv("REDIS_SENTINEL_PWD", None),
+    }
+
+REDIS_CFG = build_redis_config_from_env()
 
 # Entra ID Authentication Configuration
 ENTRAID_CFG = {
@@ -86,7 +165,7 @@ def parse_redis_uri(uri: str) -> dict:
     """Parse a Redis URI and return connection parameters."""
     parsed = urllib.parse.urlparse(uri)
 
-    config = {}
+    config = {"topology": "standalone", "cluster_mode": False}
 
     # Scheme determines SSL
     if parsed.scheme == "rediss":
@@ -143,6 +222,22 @@ def parse_redis_uri(uri: str) -> dict:
             except ValueError:
                 pass
 
+        if "topology" in query_params:
+            config["topology"] = normalize_topology(query_params["topology"][0])
+            config["cluster_mode"] = config["topology"] == "cluster"
+
+        if "cluster_mode" in query_params and parse_bool(query_params["cluster_mode"][0]):
+            config["topology"] = "cluster"
+            config["cluster_mode"] = True
+
+        if "sentinel_master_name" in query_params:
+            config["sentinel_master_name"] = query_params["sentinel_master_name"][0]
+
+        if "sentinel_nodes" in query_params:
+            config["sentinel_nodes"] = parse_sentinel_nodes(
+                query_params["sentinel_nodes"][0]
+            )
+
     return config
 
 
@@ -151,15 +246,56 @@ def set_redis_config_from_cli(config: dict):
         if key in ["port", "db"]:
             # Keep port and db as integers
             REDIS_CFG[key] = int(value)
-        elif key == "ssl" or key == "cluster_mode":
+        elif key in ["ssl", "cluster_mode"]:
             # Keep ssl and cluster_mode as booleans
-            REDIS_CFG[key] = bool(value)
+            REDIS_CFG[key] = parse_bool(value)
+        elif key == "topology":
+            REDIS_CFG[key] = normalize_topology(value, REDIS_CFG.get("cluster_mode"))
+            REDIS_CFG["cluster_mode"] = REDIS_CFG[key] == "cluster"
+        elif key == "sentinel_nodes":
+            REDIS_CFG[key] = parse_sentinel_nodes(value)
         elif isinstance(value, bool):
             # Convert other booleans to strings for environment compatibility
             REDIS_CFG[key] = "true" if value else "false"
         else:
             # Convert other values to strings
             REDIS_CFG[key] = str(value) if value is not None else None
+
+    if "cluster_mode" in config and "topology" not in config and REDIS_CFG["cluster_mode"]:
+        REDIS_CFG["topology"] = "cluster"
+    elif "cluster_mode" in config and not REDIS_CFG["cluster_mode"] and REDIS_CFG.get(
+        "topology"
+    ) == "cluster":
+        REDIS_CFG["topology"] = "standalone"
+
+    if REDIS_CFG.get("topology") == "cluster":
+        REDIS_CFG["cluster_mode"] = True
+    elif REDIS_CFG.get("topology") in {"standalone", "sentinel"}:
+        REDIS_CFG["cluster_mode"] = False
+
+
+def validate_redis_config(config: dict | None = None) -> tuple[bool, str]:
+    """Validate Redis topology-specific configuration."""
+    config = config or REDIS_CFG
+
+    try:
+        topology = normalize_topology(
+            config.get("topology"),
+            config.get("cluster_mode", False),
+        )
+    except ValueError as exc:
+        return False, str(exc)
+
+    if topology == "sentinel":
+        if not config.get("sentinel_master_name"):
+            return False, "Sentinel topology requires sentinel_master_name"
+        if not parse_sentinel_nodes(config.get("sentinel_nodes")):
+            return False, "Sentinel topology requires at least one sentinel node"
+
+    if topology == "cluster" and config.get("sentinel_master_name"):
+        return False, "Cluster topology cannot be combined with sentinel_master_name"
+
+    return True, ""
 
 
 def set_entraid_config_from_cli(config: dict):
