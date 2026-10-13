@@ -28,9 +28,9 @@ class RedisMCPServer:
     "--url",
     help="Redis connection URI (redis://user:pass@host:port/db or rediss:// for SSL)",
 )
-@click.option("--host", default="127.0.0.1", help="Redis host")
-@click.option("--port", default=6379, type=int, help="Redis port")
-@click.option("--db", default=0, type=int, help="Redis database number")
+@click.option("--host", default=None, help="Redis host (default: REDIS_HOST env var, or 127.0.0.1)")
+@click.option("--port", default=None, type=int, help="Redis port (default: REDIS_PORT env var, or 6379)")
+@click.option("--db", default=None, type=int, help="Redis database number (default: REDIS_DB env var, or 0)")
 @click.option("--username", help="Redis username")
 @click.option("--password", help="Redis password")
 @click.option("--ssl", is_flag=True, help="Use SSL connection")
@@ -126,14 +126,19 @@ def cli(
             click.echo(f"Error parsing Redis URI: {e}", err=True)
             sys.exit(1)
     else:
-        # Set individual Redis parameters
-        config = {
-            "host": host,
-            "port": port,
-            "db": db,
-            "ssl": ssl,
-            "cluster_mode": cluster_mode,
-        }
+        # Set individual Redis parameters.
+        # host/port/db are only set when the user EXPLICITLY passed the flag
+        # (default is None), so RedisMCPServer honors REDIS_HOST/REDIS_PORT/
+        # REDIS_DB env-var defaults when the corresponding CLI flag is absent.
+        config = {}
+        if host is not None:
+            config["host"] = host
+        if port is not None:
+            config["port"] = port
+        if db is not None:
+            config["db"] = db
+        config["ssl"] = ssl
+        config["cluster_mode"] = cluster_mode
 
         if username:
             config["username"] = username
