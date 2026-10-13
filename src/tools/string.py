@@ -9,6 +9,70 @@ from src.common.server import mcp
 
 
 @mcp.tool()
+async def mset(mappings: dict) -> str:
+    """Set multiple Redis string values in a single atomic operation.
+
+    Args:
+        mappings (dict): A dictionary of key-value pairs to set.
+
+    Returns:
+        str: Confirmation message or an error message.
+    """
+    if not mappings:
+        return "Error: mappings cannot be empty"
+
+    try:
+        r: Redis = RedisConnectionManager.get_connection()
+        normalized = {}
+        for k, v in mappings.items():
+            if isinstance(v, dict):
+                normalized[k] = json.dumps(v)
+            elif isinstance(v, bytes):
+                try:
+                    normalized[k] = v.decode("utf-8")
+                except UnicodeDecodeError:
+                    return f"Error setting keys: value for key '{k}' is not valid UTF-8"
+            else:
+                normalized[k] = str(v)
+        r.mset(normalized)
+        return f"Successfully set {len(mappings)} keys: {', '.join(mappings.keys())}"
+    except RedisError as e:
+        return f"Error setting keys: {str(e)}"
+
+
+@mcp.tool()
+async def mget(keys: list) -> dict:
+    """Get multiple Redis string values in a single operation.
+
+    Args:
+        keys (list): List of keys to retrieve.
+
+    Returns:
+        dict: A dictionary mapping each key to its value (or None if the key does not exist).
+    """
+    if not keys:
+        return {"error": "keys cannot be empty"}
+
+    try:
+        r: Redis = RedisConnectionManager.get_connection()
+        values = r.mget(keys)
+        result = {}
+        for key, value in zip(keys, values):
+            if value is None:
+                result[key] = None
+            elif isinstance(value, bytes):
+                try:
+                    result[key] = value.decode("utf-8")
+                except UnicodeDecodeError:
+                    result[key] = repr(value)
+            else:
+                result[key] = value
+        return result
+    except RedisError as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
 async def set(
     key: str,
     value: Union[str, bytes, int, float, dict],
