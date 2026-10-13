@@ -4,11 +4,17 @@ from typing import Union, List, Optional
 from redis.exceptions import RedisError
 from redis.typing import FieldT
 
+from src.common.annotations import (
+    READ_ONLY,
+    WRITE_DESTRUCTIVE_NOT_IDEMPOTENT,
+)
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
-@mcp.tool()
+# Destructive through `expire`: the optional TTL lands on the whole list,
+# including elements this call did not push.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE_NOT_IDEMPOTENT)
 async def lpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
     """Push a value onto the left of a Redis list and optionally set an expiration time."""
     try:
@@ -21,7 +27,9 @@ async def lpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
         return f"Error pushing value to list '{name}': {str(e)}"
 
 
-@mcp.tool()
+# Destructive through `expire`: the optional TTL lands on the whole list,
+# including elements this call did not push.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE_NOT_IDEMPOTENT)
 async def rpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
     """Push a value onto the right of a Redis list and optionally set an expiration time."""
     try:
@@ -34,7 +42,7 @@ async def rpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
         return f"Error pushing value to list '{name}': {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_DESTRUCTIVE_NOT_IDEMPOTENT)
 async def lpop(name: str) -> str:
     """Remove and return the first element from a Redis list."""
     try:
@@ -45,7 +53,7 @@ async def lpop(name: str) -> str:
         return f"Error popping value from list '{name}': {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_DESTRUCTIVE_NOT_IDEMPOTENT)
 async def rpop(name: str) -> str:
     """Remove and return the last element from a Redis list."""
     try:
@@ -56,7 +64,7 @@ async def rpop(name: str) -> str:
         return f"Error popping value from list '{name}': {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def lrange(name: str, start: int, stop: int) -> Union[str, List[str]]:
     """Get elements from a Redis list within a specific range.
 
@@ -74,7 +82,7 @@ async def lrange(name: str, start: int, stop: int) -> Union[str, List[str]]:
         return f"Error retrieving values from list '{name}': {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def llen(name: str) -> int:
     """Get the length of a Redis list."""
     try:
@@ -84,7 +92,7 @@ async def llen(name: str) -> int:
         return f"Error retrieving length of list '{name}': {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_DESTRUCTIVE_NOT_IDEMPOTENT)
 async def lrem(name: str, count: int, element: FieldT) -> str:
     """Remove elements from a Redis list.
 

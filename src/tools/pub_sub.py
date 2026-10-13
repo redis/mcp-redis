@@ -3,6 +3,7 @@ from typing import Any, Dict
 
 from redis.exceptions import RedisError
 
+from src.common.annotations import WRITE_ADDITIVE, WRITE_DESTRUCTIVE
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 from src.common.subscription_manager import (
@@ -11,7 +12,7 @@ from src.common.subscription_manager import (
 )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_ADDITIVE)
 async def publish(channel: str, message: str) -> str:
     """Publish a message to a Redis channel.
 
@@ -30,7 +31,7 @@ async def publish(channel: str, message: str) -> str:
         return f"Error publishing message to channel '{channel}': {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_ADDITIVE)
 async def subscribe(channel: str) -> Dict[str, Any]:
     """Subscribe to a Redis channel and return a reusable subscription handle.
 
@@ -54,7 +55,7 @@ async def subscribe(channel: str) -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_ADDITIVE)
 async def psubscribe(pattern: str) -> Dict[str, Any]:
     """Subscribe to Redis channels using a pattern.
 
@@ -80,7 +81,9 @@ async def psubscribe(pattern: str) -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-@mcp.tool()
+# Not read-only: the messages it returns are drained from the
+# subscription and a second call will not return them again.
+@mcp.tool(annotations=WRITE_ADDITIVE)
 async def read_messages(
     subscription_id: str, timeout_ms: int = 1000, max_messages: int = 10
 ) -> Dict[str, Any]:
@@ -120,7 +123,9 @@ async def read_messages(
         }
 
 
-@mcp.tool()
+# Destructive: the subscription and anything still buffered on it are
+# gone, and neither can be restored from the handle.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def unsubscribe(subscription_id: str) -> Dict[str, Any]:
     """Unsubscribe and close an existing pub/sub subscription.
 
