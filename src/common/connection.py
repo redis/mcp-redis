@@ -83,6 +83,10 @@ class RedisConnectionManager:
                         # Note: Azure Redis Enterprise with EntraID uses plain text connections
                         # SSL setting is controlled by REDIS_SSL environment variable
 
+                protocol = REDIS_CFG.get("protocol")
+                if protocol is not None:
+                    connection_params["protocol"] = protocol
+
                 cls._instance = redis_class(**connection_params)
 
             except redis.exceptions.ConnectionError:
