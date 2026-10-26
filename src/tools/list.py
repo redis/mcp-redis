@@ -9,26 +9,60 @@ from src.common.server import mcp
 
 
 @mcp.tool()
-async def lpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
-    """Push a value onto the left of a Redis list and optionally set an expiration time."""
+async def lpush(
+    name: str, value: Union[FieldT, List[FieldT]], expire: Optional[int] = None
+) -> str:
+    """Push one or more values onto the left of a Redis list and optionally set an expiration time.
+
+    Args:
+        name: The name of the list
+        value: A single value, or a list of values pushed in one LPUSH call.
+            Values are inserted one after another at the head, so [a, b, c]
+            results in the list starting with c, b, a.
+        expire: Optional expiration time in seconds
+
+    Returns:
+        A string confirming the push, including the new list length for multiple values.
+    """
+    values = value if isinstance(value, list) else [value]
+    if not values:
+        return f"Error pushing value to list '{name}': no values provided."
     try:
         r = RedisConnectionManager.get_connection()
-        r.lpush(name, value)
+        length = r.lpush(name, *values)
         if expire:
             r.expire(name, expire)
+        if isinstance(value, list):
+            return f"Pushed {len(values)} value(s) to the left of list '{name}'. List length is now {length}."
         return f"Value '{value}' pushed to the left of list '{name}'."
     except RedisError as e:
         return f"Error pushing value to list '{name}': {str(e)}"
 
 
 @mcp.tool()
-async def rpush(name: str, value: FieldT, expire: Optional[int] = None) -> str:
-    """Push a value onto the right of a Redis list and optionally set an expiration time."""
+async def rpush(
+    name: str, value: Union[FieldT, List[FieldT]], expire: Optional[int] = None
+) -> str:
+    """Push one or more values onto the right of a Redis list and optionally set an expiration time.
+
+    Args:
+        name: The name of the list
+        value: A single value, or a list of values pushed in one RPUSH call
+        expire: Optional expiration time in seconds
+
+    Returns:
+        A string confirming the push, including the new list length for multiple values.
+    """
+    values = value if isinstance(value, list) else [value]
+    if not values:
+        return f"Error pushing value to list '{name}': no values provided."
     try:
         r = RedisConnectionManager.get_connection()
-        r.rpush(name, value)
+        length = r.rpush(name, *values)
         if expire:
             r.expire(name, expire)
+        if isinstance(value, list):
+            return f"Pushed {len(values)} value(s) to the right of list '{name}'. List length is now {length}."
         return f"Value '{value}' pushed to the right of list '{name}'."
     except RedisError as e:
         return f"Error pushing value to list '{name}': {str(e)}"
