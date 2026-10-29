@@ -337,3 +337,11 @@ class TestListOperations:
         assert (
             "Error removing element from list 'test_list': Connection failed" in result
         )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("pop", [lpop, rpop])
+    async def test_pop_empty_string(self, mock_redis_connection_manager, pop):
+        """A popped empty string is still a successfully removed value."""
+        getattr(mock_redis_connection_manager, pop.__name__).return_value = ""
+
+        assert await pop("test_list") == ""
