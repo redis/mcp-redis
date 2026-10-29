@@ -50,7 +50,9 @@ async def hget(name: str, key: str) -> str:
     try:
         r = RedisConnectionManager.get_connection()
         value = r.hget(name, key)
-        return value if value else f"Field '{key}' not found in hash '{name}'."
+        return (
+            value if value is not None else f"Field '{key}' not found in hash '{name}'."
+        )
     except RedisError as e:
         return f"Error getting field '{key}' from hash '{name}': {str(e)}"
 
