@@ -4,11 +4,13 @@ from typing import Union, Optional
 from redis.exceptions import RedisError
 from redis import Redis
 
+from src.common.annotations import READ_ONLY, WRITE_DESTRUCTIVE
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
-@mcp.tool()
+# Destructive: SET replaces whatever the key already held.
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def set(
     key: str,
     value: Union[str, bytes, int, float, dict],
@@ -48,7 +50,7 @@ async def set(
         return f"Error setting key {key}: {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def get(key: str) -> Union[str, bytes]:
     """Get a Redis string value.
 
