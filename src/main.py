@@ -28,20 +28,20 @@ class RedisMCPServer:
     "--url",
     help="Redis connection URI (redis://user:pass@host:port/db or rediss:// for SSL)",
 )
-@click.option("--host", default="127.0.0.1", help="Redis host")
-@click.option("--port", default=6379, type=int, help="Redis port")
-@click.option("--db", default=0, type=int, help="Redis database number")
+@click.option("--host", help="Redis host")
+@click.option("--port", type=int, help="Redis port")
+@click.option("--db", type=int, help="Redis database number")
 @click.option("--username", help="Redis username")
 @click.option("--password", help="Redis password")
-@click.option("--ssl", is_flag=True, help="Use SSL connection")
+@click.option("--ssl", is_flag=True, default=None, help="Use SSL connection")
 @click.option("--ssl-ca-path", help="Path to CA certificate file")
 @click.option("--ssl-keyfile", help="Path to SSL key file")
 @click.option("--ssl-certfile", help="Path to SSL certificate file")
-@click.option(
-    "--ssl-cert-reqs", default="required", help="SSL certificate requirements"
-)
+@click.option("--ssl-cert-reqs", help="SSL certificate requirements")
 @click.option("--ssl-ca-certs", help="Path to CA certificates file")
-@click.option("--cluster-mode", is_flag=True, help="Enable Redis cluster mode")
+@click.option(
+    "--cluster-mode", is_flag=True, default=None, help="Enable Redis cluster mode"
+)
 # Entra ID Authentication Options
 @click.option(
     "--entraid-auth-flow",
@@ -127,14 +127,18 @@ def cli(
             sys.exit(1)
     else:
         # Set individual Redis parameters
-        config = {
-            "host": host,
-            "port": port,
-            "db": db,
-            "ssl": ssl,
-            "cluster_mode": cluster_mode,
-        }
+        config = {}
 
+        if host is not None:
+            config["host"] = host
+        if port is not None:
+            config["port"] = port
+        if db is not None:
+            config["db"] = db
+        if ssl is not None:
+            config["ssl"] = ssl
+        if cluster_mode is not None:
+            config["cluster_mode"] = cluster_mode
         if username:
             config["username"] = username
         if password:
@@ -145,7 +149,7 @@ def cli(
             config["ssl_keyfile"] = ssl_keyfile
         if ssl_certfile:
             config["ssl_certfile"] = ssl_certfile
-        if ssl_cert_reqs:
+        if ssl_cert_reqs is not None:
             config["ssl_cert_reqs"] = ssl_cert_reqs
         if ssl_ca_certs:
             config["ssl_ca_certs"] = ssl_ca_certs
