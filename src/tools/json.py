@@ -2,11 +2,12 @@ import json
 from typing import Optional
 from redis.exceptions import RedisError
 
+from src.common.annotations import READ_ONLY, WRITE_DESTRUCTIVE
 from src.common.connection import RedisConnectionManager
 from src.common.server import mcp
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def json_set(
     name: str,
     path: str,
@@ -44,7 +45,7 @@ async def json_set(
         return f"Error setting JSON value at path '{path}' in '{name}': {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def json_get(name: str, path: str = "$") -> str:
     """Retrieve a JSON value from Redis at a given path.
 
@@ -67,7 +68,7 @@ async def json_get(name: str, path: str = "$") -> str:
         return f"Error retrieving JSON value at path '{path}' in '{name}': {str(e)}"
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE_DESTRUCTIVE)
 async def json_del(name: str, path: str = "$") -> str:
     """Delete a JSON value from Redis at a given path.
 
