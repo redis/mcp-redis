@@ -40,7 +40,9 @@ async def lpop(name: str) -> str:
     try:
         r = RedisConnectionManager.get_connection()
         value = r.lpop(name)
-        return value if value else f"List '{name}' is empty or does not exist."
+        return (
+            value if value is not None else f"List '{name}' is empty or does not exist."
+        )
     except RedisError as e:
         return f"Error popping value from list '{name}': {str(e)}"
 
@@ -51,7 +53,9 @@ async def rpop(name: str) -> str:
     try:
         r = RedisConnectionManager.get_connection()
         value = r.rpop(name)
-        return value if value else f"List '{name}' is empty or does not exist."
+        return (
+            value if value is not None else f"List '{name}' is empty or does not exist."
+        )
     except RedisError as e:
         return f"Error popping value from list '{name}': {str(e)}"
 
