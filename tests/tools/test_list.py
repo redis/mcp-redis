@@ -82,6 +82,45 @@ class TestListOperations:
         assert "Error pushing value to list 'test_list': Connection failed" in result
 
     @pytest.mark.asyncio
+    async def test_lpush_multiple_values(self, mock_redis_connection_manager):
+        """Test left push of several values in a single LPUSH call."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.lpush.return_value = 5
+
+        result = await lpush("test_list", ["a", "b", "c"], 60)
+
+        mock_redis.lpush.assert_called_once_with("test_list", "a", "b", "c")
+        mock_redis.expire.assert_called_once_with("test_list", 60)
+        assert "Pushed 3 value(s) to the left of list 'test_list'" in result
+        assert "List length is now 5" in result
+
+    @pytest.mark.asyncio
+    async def test_rpush_multiple_values(self, mock_redis_connection_manager):
+        """Test right push of several values in a single RPUSH call."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.rpush.return_value = 3
+
+        result = await rpush("test_list", ["a", 1, 2.5])
+
+        mock_redis.rpush.assert_called_once_with("test_list", "a", 1, 2.5)
+        mock_redis.expire.assert_not_called()
+        assert "Pushed 3 value(s) to the right of list 'test_list'" in result
+        assert "List length is now 3" in result
+
+    @pytest.mark.asyncio
+    async def test_push_empty_values_rejected(self, mock_redis_connection_manager):
+        """Test that pushing an empty list of values is rejected without calling Redis."""
+        mock_redis = mock_redis_connection_manager
+
+        lresult = await lpush("test_list", [])
+        rresult = await rpush("test_list", [])
+
+        mock_redis.lpush.assert_not_called()
+        mock_redis.rpush.assert_not_called()
+        assert "no values provided" in lresult
+        assert "no values provided" in rresult
+
+    @pytest.mark.asyncio
     async def test_lpop_success(self, mock_redis_connection_manager):
         """Test successful left pop operation."""
         mock_redis = mock_redis_connection_manager
