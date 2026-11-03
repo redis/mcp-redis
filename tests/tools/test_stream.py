@@ -13,6 +13,7 @@ from src.tools.stream import (
     xdel,
     xgroup_create,
     xgroup_destroy,
+    xinfo_groups,
     xrange,
     xreadgroup,
 )
@@ -603,3 +604,53 @@ class TestStreamOperations:
 
         mock_redis.xadd.assert_called_once_with("events_stream", fields)
         assert "Successfully added entry 1234567890130-0 to events_stream" in result
+
+    @pytest.mark.asyncio
+    async def test_xinfo_groups_success(self, mock_redis_connection_manager):
+        """Test listing consumer groups."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xinfo_groups.return_value = [
+            {
+                "name": "billing",
+                "consumers": 0,
+                "pending": 0,
+                "last-delivered-id": "0-0",
+            },
+            {
+                "name": "shipping",
+                "consumers": 1,
+                "pending": 2,
+                "last-delivered-id": "1-0",
+            },
+        ]
+
+        result = await xinfo_groups("orders")
+
+        mock_redis.xinfo_groups.assert_called_once_with("orders")
+        assert result == [
+            {
+                "name": "billing",
+                "consumers": 0,
+                "pending": 0,
+                "last_delivered_id": "0-0",
+            },
+            {
+                "name": "shipping",
+                "consumers": 1,
+                "pending": 2,
+                "last_delivered_id": "1-0",
+            },
+        ]
+
+    @pytest.mark.asyncio
+    async def test_xinfo_groups_redis_error(self, mock_redis_connection_manager):
+        """Test listing consumer groups with Redis error."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.xinfo_groups.side_effect = RedisError("ERR no such key")
+
+        result = await xinfo_groups("missing")
+
+        assert (
+            result
+            == "Error listing consumer groups on stream 'missing': ERR no such key"
+        )

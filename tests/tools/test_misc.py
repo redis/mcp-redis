@@ -221,3 +221,34 @@ async def test_search_redis_documents_timeout(monkeypatch):
     assert result["error"] == (
         f"Docs search request timed out after {misc.DOCS_SEARCH_TIMEOUT_SECONDS} seconds"
     )
+
+
+@pytest.mark.asyncio
+async def test_ttl_returns_remaining_seconds(mock_redis_connection_manager):
+    """ttl reads the remaining time to live without changing the key."""
+    mock_redis = mock_redis_connection_manager
+    mock_redis.ttl.return_value = 120
+
+    result = await misc.ttl("session:1")
+
+    mock_redis.ttl.assert_called_once_with("session:1")
+    mock_redis.expire.assert_not_called()
+    assert result == {"key": "session:1", "ttl": 120}
+
+
+@pytest.mark.asyncio
+async def test_ttl_no_expiration(mock_redis_connection_manager):
+    """ttl reports -1 for a key without an expiration."""
+    mock_redis_connection_manager.ttl.return_value = -1
+
+    assert await misc.ttl("persistent") == {"key": "persistent", "ttl": -1}
+
+
+@pytest.mark.asyncio
+async def test_ttl_redis_error(mock_redis_connection_manager):
+    """ttl returns the Redis error."""
+    from redis.exceptions import RedisError
+
+    mock_redis_connection_manager.ttl.side_effect = RedisError("Connection failed")
+
+    assert await misc.ttl("k") == {"error": "Connection failed"}
