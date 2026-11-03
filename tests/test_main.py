@@ -206,15 +206,29 @@ class TestCLI:
         result = self.runner.invoke(cli, [])
 
         assert result.exit_code == 0
-        # Should be called with empty config when no parameters provided
-        mock_set_config.assert_called_once()
-        call_args = mock_set_config.call_args[0][0]
+        mock_set_config.assert_called_once_with({})
 
-        # Check that only non-None values are in the config
-        for key, value in call_args.items():
-            if value is not None:
-                # These should be the default values or explicitly set values
-                assert isinstance(value, (str, int, bool))
+    @patch("src.main.RedisMCPServer")
+    def test_cli_without_options_preserves_environment_config(self, mock_server_class):
+        """CLI defaults should not replace configuration loaded from the environment."""
+        mock_server = Mock()
+        mock_server_class.return_value = mock_server
+        environment_config = {
+            "host": "redis.internal",
+            "port": 6380,
+            "db": 4,
+            "ssl": True,
+            "ssl_cert_reqs": "optional",
+            "cluster_mode": True,
+        }
+
+        with patch.dict(
+            "src.common.config.REDIS_CFG", environment_config, clear=True
+        ) as redis_config:
+            result = self.runner.invoke(cli, [])
+
+            assert result.exit_code == 0
+            assert redis_config == environment_config
 
     @patch("src.main.parse_redis_uri")
     @patch("src.main.set_redis_config_from_cli")
