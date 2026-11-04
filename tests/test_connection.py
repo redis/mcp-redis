@@ -17,11 +17,13 @@ class TestRedisConnectionManager:
         """Set up test fixtures."""
         # Reset singleton instance before each test
         RedisConnectionManager._instance = None
+        RedisConnectionManager._binary_instance = None
 
     def teardown_method(self):
         """Clean up after each test."""
         # Reset singleton instance after each test
         RedisConnectionManager._instance = None
+        RedisConnectionManager._binary_instance = None
 
     @patch("src.common.connection.redis.Redis")
     @patch("src.common.connection.REDIS_CFG")
@@ -318,3 +320,67 @@ class TestRedisConnectionManager:
         assert call_args["username"] is None
         assert call_args["password"] == ""
         assert call_args["ssl_ca_path"] is None
+
+    @patch("src.common.connection.redis.Redis")
+    @patch("src.common.connection.REDIS_CFG")
+    def test_binary_connection_is_separate_from_the_decoding_one(
+        self, mock_config, mock_redis_class
+    ):
+        """decode_responses=False must not be answered with the client created for True, or the
+        other way round: a decoding client cannot read a binary value, and a binary one would make
+        every other tool return bytes."""
+        mock_config.__getitem__.side_effect = lambda key: {
+            "cluster_mode": False,
+            "host": "localhost",
+            "port": 6379,
+            "db": 0,
+            "username": None,
+            "password": "",
+            "ssl": False,
+            "ssl_ca_path": None,
+            "ssl_keyfile": None,
+            "ssl_certfile": None,
+            "ssl_cert_reqs": "required",
+            "ssl_ca_certs": None,
+        }[key]
+        mock_redis_class.side_effect = lambda **kwargs: Mock(
+            decode_responses=kwargs["decode_responses"]
+        )
+
+        text = RedisConnectionManager.get_connection()
+        binary = RedisConnectionManager.get_connection(decode_responses=False)
+
+        assert text is not binary
+        assert text.decode_responses is True
+        assert binary.decode_responses is False
+        # each one is created once and reused
+        assert RedisConnectionManager.get_connection() is text
+        assert RedisConnectionManager.get_connection(decode_responses=False) is binary
+        assert mock_redis_class.call_count == 2
+
+    @patch("src.common.connection.redis.Redis")
+    @patch("src.common.connection.REDIS_CFG")
+    def test_binary_connection_asked_first_does_not_turn_the_default_binary(
+        self, mock_config, mock_redis_class
+    ):
+        """The first tool to run used to decide the mode for the whole process."""
+        mock_config.__getitem__.side_effect = lambda key: {
+            "cluster_mode": False,
+            "host": "localhost",
+            "port": 6379,
+            "db": 0,
+            "username": None,
+            "password": "",
+            "ssl": False,
+            "ssl_ca_path": None,
+            "ssl_keyfile": None,
+            "ssl_certfile": None,
+            "ssl_cert_reqs": "required",
+            "ssl_ca_certs": None,
+        }[key]
+        mock_redis_class.side_effect = lambda **kwargs: Mock(
+            decode_responses=kwargs["decode_responses"]
+        )
+
+        RedisConnectionManager.get_connection(decode_responses=False)
+        assert RedisConnectionManager.get_connection().decode_responses is True
