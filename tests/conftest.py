@@ -102,8 +102,10 @@ def reset_connection_manager():
     from src.common.connection import RedisConnectionManager
 
     RedisConnectionManager._instance = None
+    RedisConnectionManager._binary_instance = None
     yield
     RedisConnectionManager._instance = None
+    RedisConnectionManager._binary_instance = None
 
 
 @pytest.fixture(autouse=True)
