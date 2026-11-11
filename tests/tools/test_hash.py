@@ -359,3 +359,10 @@ class TestHashOperations:
 
         mock_numpy_array.assert_called_once_with(large_vector, dtype=np.float32)
         assert result is True
+
+    @pytest.mark.asyncio
+    async def test_hget_empty_string(self, mock_redis_connection_manager):
+        """An existing empty field is not a missing field."""
+        mock_redis_connection_manager.hget.return_value = ""
+
+        assert await hget("test_hash", "field1") == ""
