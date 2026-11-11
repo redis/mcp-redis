@@ -73,7 +73,7 @@ This MCP Server provides tools to manage the data stored in Redis.
 - `set` tools to add, remove and list set members. Useful for tracking unique values like user IDs or tags, and for performing set operations like intersection.
 - `sorted set` tools to manage data for e.g. leaderboards, priority queues, or time-based analytics with score-based ordering.
 - `pub/sub` functionality to publish messages, create stateful channel or pattern subscriptions, and read queued messages using returned subscription handles. Useful for real-time notifications, chat applications, or distributing updates to multiple clients.
-- `streams` tools to add, read, delete, create and destroy consumer groups, and acknowledge processed entries in data streams. Useful for event sourcing, activity feeds, and worker-based event processing with Redis Streams consumer groups.
+- `streams` tools to add, read, delete, list, create and destroy consumer groups, and acknowledge processed entries in data streams. Useful for event sourcing, activity feeds, and worker-based event processing with Redis Streams consumer groups.
 - `JSON` tools to store, retrieve, and manipulate JSON documents in Redis. Useful for complex nested data structures, document databases, or configuration management with path-based access.
 
 Additional tools.
@@ -81,6 +81,7 @@ Additional tools.
 - `docs` tool to search Redis documentation, tutorials, and best practices using natural language questions (backed by the `MCP_DOCS_SEARCH_URL` HTTP API).
 - `query engine` tools to manage vector indexes and perform vector search
 - `server management` tool to retrieve information about the database
+- `ttl` and `type` tools to read a key's remaining time to live and its type without changing the key
 
 ## Installation
 
