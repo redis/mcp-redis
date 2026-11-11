@@ -22,7 +22,7 @@ async def lpush(
         expire: Optional expiration time in seconds
 
     Returns:
-        A string confirming the push, including the new list length for multiple values.
+        A string confirming the push, including the new list length.
     """
     values = value if isinstance(value, list) else [value]
     if not values:
@@ -34,7 +34,7 @@ async def lpush(
             r.expire(name, expire)
         if isinstance(value, list):
             return f"Pushed {len(values)} value(s) to the left of list '{name}'. List length is now {length}."
-        return f"Value '{value}' pushed to the left of list '{name}'."
+        return f"Value '{value}' pushed to the left of list '{name}'. List length is now {length}."
     except RedisError as e:
         return f"Error pushing value to list '{name}': {str(e)}"
 
@@ -51,7 +51,7 @@ async def rpush(
         expire: Optional expiration time in seconds
 
     Returns:
-        A string confirming the push, including the new list length for multiple values.
+        A string confirming the push, including the new list length.
     """
     values = value if isinstance(value, list) else [value]
     if not values:
@@ -63,7 +63,7 @@ async def rpush(
             r.expire(name, expire)
         if isinstance(value, list):
             return f"Pushed {len(values)} value(s) to the right of list '{name}'. List length is now {length}."
-        return f"Value '{value}' pushed to the right of list '{name}'."
+        return f"Value '{value}' pushed to the right of list '{name}'. List length is now {length}."
     except RedisError as e:
         return f"Error pushing value to list '{name}': {str(e)}"
 

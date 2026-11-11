@@ -21,6 +21,7 @@ class TestListOperations:
 
         mock_redis.lpush.assert_called_once_with("test_list", "value1")
         assert "Value 'value1' pushed to the left of list 'test_list'" in result
+        assert "List length is now 2" in result
 
     @pytest.mark.asyncio
     async def test_lpush_with_expiration(self, mock_redis_connection_manager):
@@ -56,6 +57,7 @@ class TestListOperations:
 
         mock_redis.rpush.assert_called_once_with("test_list", "value2")
         assert "Value 'value2' pushed to the right of list 'test_list'" in result
+        assert "List length is now 3" in result
 
     @pytest.mark.asyncio
     async def test_rpush_with_expiration(self, mock_redis_connection_manager):
