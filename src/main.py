@@ -42,6 +42,12 @@ class RedisMCPServer:
 )
 @click.option("--ssl-ca-certs", help="Path to CA certificates file")
 @click.option("--cluster-mode", is_flag=True, help="Enable Redis cluster mode")
+@click.option(
+    "--protocol",
+    type=click.IntRange(2, 3),
+    default=None,
+    help="Redis RESP protocol version (2 or 3); defaults to the redis-py setting",
+)
 # Entra ID Authentication Options
 @click.option(
     "--entraid-auth-flow",
@@ -102,6 +108,7 @@ def cli(
     ssl_cert_reqs,
     ssl_ca_certs,
     cluster_mode,
+    protocol,
     entraid_auth_flow,
     entraid_client_id,
     entraid_client_secret,
@@ -151,6 +158,10 @@ def cli(
             config["ssl_ca_certs"] = ssl_ca_certs
 
         set_redis_config_from_cli(config)
+
+    # An explicit protocol overrides the environment in both connection modes.
+    if protocol is not None:
+        set_redis_config_from_cli({"protocol": protocol})
 
     # Handle Entra ID authentication configuration
     entraid_config = {}
