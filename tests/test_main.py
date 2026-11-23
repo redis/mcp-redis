@@ -245,3 +245,39 @@ class TestCLI:
         call_args = mock_set_config.call_args[0][0]
         assert call_args["host"] == "uri-host"
         assert call_args["port"] == 9999
+
+
+class TestCLIDefaultsDoNotOverrideEnv:
+    """CLI options that are not passed must not override REDIS_* env config (#156)."""
+
+    def setup_method(self):
+        self.runner = CliRunner()
+
+    @patch("src.main.set_redis_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_unset_options_are_not_forwarded(self, mock_server_class, mock_set_config):
+        result = self.runner.invoke(cli, [])
+
+        assert result.exit_code == 0
+        config = mock_set_config.call_args[0][0]
+        for key in ("host", "port", "db", "ssl", "cluster_mode", "ssl_cert_reqs"):
+            assert key not in config
+
+    @patch("src.main.set_redis_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_env_values_survive_cli_without_flags(
+        self, mock_server_class, mock_set_config, monkeypatch
+    ):
+        from src.common import config as cfg
+
+        monkeypatch.setitem(cfg.REDIS_CFG, "host", "redis.example.com")
+        monkeypatch.setitem(cfg.REDIS_CFG, "port", 6380)
+        monkeypatch.setitem(cfg.REDIS_CFG, "ssl", True)
+        mock_set_config.side_effect = cfg.set_redis_config_from_cli
+
+        result = self.runner.invoke(cli, [])
+
+        assert result.exit_code == 0
+        assert cfg.REDIS_CFG["host"] == "redis.example.com"
+        assert cfg.REDIS_CFG["port"] == 6380
+        assert cfg.REDIS_CFG["ssl"] is True

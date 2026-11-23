@@ -28,9 +28,11 @@ class RedisMCPServer:
     "--url",
     help="Redis connection URI (redis://user:pass@host:port/db or rediss:// for SSL)",
 )
-@click.option("--host", default="127.0.0.1", help="Redis host")
-@click.option("--port", default=6379, type=int, help="Redis port")
-@click.option("--db", default=0, type=int, help="Redis database number")
+@click.option("--host", help="Redis host (env: REDIS_HOST, default 127.0.0.1)")
+@click.option("--port", type=int, help="Redis port (env: REDIS_PORT, default 6379)")
+@click.option(
+    "--db", type=int, help="Redis database number (env: REDIS_DB, default 0)"
+)
 @click.option("--username", help="Redis username")
 @click.option("--password", help="Redis password")
 @click.option("--ssl", is_flag=True, help="Use SSL connection")
@@ -38,7 +40,8 @@ class RedisMCPServer:
 @click.option("--ssl-keyfile", help="Path to SSL key file")
 @click.option("--ssl-certfile", help="Path to SSL certificate file")
 @click.option(
-    "--ssl-cert-reqs", default="required", help="SSL certificate requirements"
+    "--ssl-cert-reqs",
+    help="SSL certificate requirements (env: REDIS_SSL_CERT_REQS, default required)",
 )
 @click.option("--ssl-ca-certs", help="Path to CA certificates file")
 @click.option("--cluster-mode", is_flag=True, help="Enable Redis cluster mode")
@@ -127,14 +130,20 @@ def cli(
             sys.exit(1)
     else:
         # Set individual Redis parameters
-        config = {
-            "host": host,
-            "port": port,
-            "db": db,
-            "ssl": ssl,
-            "cluster_mode": cluster_mode,
-        }
+        # Only forward options that were actually given, so that REDIS_* env
+        # values are not overridden by CLI defaults.
+        config = {}
 
+        if host is not None:
+            config["host"] = host
+        if port is not None:
+            config["port"] = port
+        if db is not None:
+            config["db"] = db
+        if ssl:
+            config["ssl"] = ssl
+        if cluster_mode:
+            config["cluster_mode"] = cluster_mode
         if username:
             config["username"] = username
         if password:
