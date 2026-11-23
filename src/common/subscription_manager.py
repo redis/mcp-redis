@@ -83,13 +83,16 @@ class SubscriptionManager:
             subscription.last_accessed_at = time.time()
             while len(messages) < max_messages:
                 remaining = max(0.0, deadline - time.monotonic())
-                message = subscription.pubsub.get_message(
-                    ignore_subscribe_messages=True,
-                    timeout=remaining,
-                )
+                # Not ignore_subscribe_messages=True: with it, redis-py reads and drops the
+                # (p)subscribe confirmation and returns None for it, with a real message possibly
+                # behind it, and a None here ends the loop.
+                message = subscription.pubsub.get_message(timeout=remaining)
 
                 if message is None:
                     break
+
+                if message["type"] not in ("message", "pmessage"):
+                    continue
 
                 messages.append(_decode_message_value(message))
 

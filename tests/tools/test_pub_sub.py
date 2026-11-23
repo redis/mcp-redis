@@ -497,6 +497,52 @@ class TestPubSubOperations:
         assert captured_timeouts[0] > 0.25
 
     @pytest.mark.asyncio
+    async def test_read_messages_first_read_after_subscribe_returns_waiting_messages(
+        self, mock_redis_connection_manager
+    ):
+        """The (p)subscribe confirmation arrives before any message. redis-py drops it and
+        returns None for it when ignore_subscribe_messages=True, with the real message right
+        behind, so a None must not end the read."""
+
+        class FakePubSub:
+            """Behaves like redis-py's PubSub.get_message for the part that matters here."""
+
+            def __init__(self, incoming):
+                self.incoming = list(incoming)
+
+            def get_message(self, ignore_subscribe_messages=False, timeout=0.0):
+                if not self.incoming:
+                    return None
+                message = self.incoming.pop(0)
+                if ignore_subscribe_messages and message["type"] in (
+                    "subscribe",
+                    "psubscribe",
+                ):
+                    return None
+                return message
+
+            def subscribe(self, *targets):
+                pass
+
+            def close(self):
+                pass
+
+        mock_redis = mock_redis_connection_manager
+        mock_redis.pubsub.return_value = FakePubSub(
+            [
+                {"type": "subscribe", "pattern": None, "channel": b"news", "data": 1},
+                {"type": "message", "pattern": None, "channel": b"news", "data": b"a"},
+                {"type": "message", "pattern": None, "channel": b"news", "data": b"b"},
+            ]
+        )
+
+        subscription = await subscribe("news")
+        result = await read_messages(subscription["subscription_id"], max_messages=10)
+
+        assert result["message_count"] == 2
+        assert [m["data"] for m in result["messages"]] == ["a", "b"]
+
+    @pytest.mark.asyncio
     async def test_read_messages_returns_empty_list_when_no_messages(
         self, mock_redis_connection_manager
     ):
