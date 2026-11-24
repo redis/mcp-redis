@@ -214,7 +214,6 @@ class TestMCPServerIntegration:
             "delete",
             "type",
             "expire",
-            "ttl",
             "rename",
             "scan_keys",
             "scan_all_keys",
@@ -279,7 +278,7 @@ class TestMCPServerIntegration:
         tool_names = [tool["name"] for tool in tools]
 
         # Expected tool count (based on @mcp.tool() decorators in codebase)
-        expected_tool_count = 55
+        expected_tool_count = 54
         assert len(tools) == expected_tool_count, (
             f"Expected {expected_tool_count} tools, but got {len(tools)}"
         )
@@ -326,7 +325,6 @@ class TestMCPServerIntegration:
             "smembers",
             "srem",
             "subscribe",
-            "ttl",
             "type",
             "unsubscribe",
             "vector_search_hash",
@@ -380,7 +378,6 @@ class TestMCPServerIntegration:
                 "delete",
                 "expire",
                 "rename",
-                "ttl",
                 "type",
                 "scan_keys",
                 "scan_all_keys",

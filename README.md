@@ -81,7 +81,6 @@ Additional tools.
 - `docs` tool to search Redis documentation, tutorials, and best practices using natural language questions (backed by the `MCP_DOCS_SEARCH_URL` HTTP API).
 - `query engine` tools to manage vector indexes and perform vector search
 - `server management` tool to retrieve information about the database
-- `ttl` and `type` tools to read a key's remaining time to live and its type without changing the key
 
 ## Installation
 

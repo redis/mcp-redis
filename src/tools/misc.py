@@ -75,24 +75,6 @@ async def expire(name: str, expire_seconds: int) -> str:
 
 
 @mcp.tool()
-async def ttl(key: str) -> Dict[str, Any]:
-    """Get the remaining time to live of a Redis key. This only reads the key.
-
-    Args:
-        key (str): The key to check.
-
-    Returns:
-        dict: The key and its time to live in seconds (-1 if the key has no
-        expiration, -2 if the key doesn't exist), or an error message.
-    """
-    try:
-        r = RedisConnectionManager.get_connection()
-        return {"key": key, "ttl": r.ttl(key)}
-    except RedisError as e:
-        return {"error": str(e)}
-
-
-@mcp.tool()
 async def rename(old_key: str, new_key: str) -> Dict[str, Any]:
     """
     Renames a Redis key from old_key to new_key.
