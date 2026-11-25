@@ -30,9 +30,7 @@ class RedisMCPServer:
 )
 @click.option("--host", help="Redis host (env: REDIS_HOST, default 127.0.0.1)")
 @click.option("--port", type=int, help="Redis port (env: REDIS_PORT, default 6379)")
-@click.option(
-    "--db", type=int, help="Redis database number (env: REDIS_DB, default 0)"
-)
+@click.option("--db", type=int, help="Redis database number (env: REDIS_DB, default 0)")
 @click.option("--username", help="Redis username")
 @click.option("--password", help="Redis password")
 @click.option("--ssl", is_flag=True, help="Use SSL connection")
