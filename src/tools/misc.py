@@ -32,13 +32,14 @@ async def delete(key: str) -> str:
 
 @mcp.tool()
 async def type(key: str) -> Dict[str, Any]:
-    """Returns the string representation of the type of the value stored at key
+    """Returns the type of the value stored at key and the key's remaining time to live.
 
     Args:
         key (str): The key to check.
 
     Returns:
-        str: The type of key, or none when key doesn't exist
+        dict: The key, its type ("none" when the key doesn't exist) and its time
+        to live in seconds (-1 if the key has no expiration, -2 if it doesn't exist).
     """
     try:
         r = RedisConnectionManager.get_connection()

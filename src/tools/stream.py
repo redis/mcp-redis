@@ -126,6 +126,35 @@ async def xgroup_destroy(key: str, group_name: str) -> str:
 
 
 @mcp.tool()
+async def xinfo_groups(key: str) -> Any:
+    """List the consumer groups of a Redis stream. This only reads the stream.
+
+    Unlike xreadgroup, which delivers entries to a consumer and so changes the
+    group's state, this tool changes nothing.
+
+    Args:
+        key (str): The stream key.
+
+    Returns:
+        list: One entry per consumer group, with its name, number of consumers,
+        number of pending entries and last delivered entry ID, or an error message.
+    """
+    try:
+        r = RedisConnectionManager.get_connection()
+        return [
+            {
+                "name": g["name"],
+                "consumers": g["consumers"],
+                "pending": g["pending"],
+                "last_delivered_id": g["last-delivered-id"],
+            }
+            for g in r.xinfo_groups(key)
+        ]
+    except RedisError as e:
+        return f"Error listing consumer groups on stream '{key}': {str(e)}"
+
+
+@mcp.tool()
 async def xreadgroup(
     key: str,
     group_name: str,
