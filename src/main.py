@@ -60,34 +60,30 @@ class RedisMCPServer:
 @click.option(
     "--entraid-identity-type",
     type=click.Choice(["system_assigned", "user_assigned"]),
-    default="system_assigned",
-    help="Managed identity type",
+    help="Managed identity type (env: REDIS_ENTRAID_IDENTITY_TYPE, default system_assigned)",
 )
 @click.option(
     "--entraid-scopes",
-    default="https://redis.azure.com/.default",
-    help="Entra ID scopes (comma-separated)",
+    help="Entra ID scopes (comma-separated) (env: REDIS_ENTRAID_SCOPES, default https://redis.azure.com/.default)",
 )
 @click.option(
-    "--entraid-resource", default="https://redis.azure.com/", help="Entra ID resource"
+    "--entraid-resource",
+    help="Entra ID resource (env: REDIS_ENTRAID_RESOURCE, default https://redis.azure.com/)",
 )
 @click.option(
     "--entraid-token-refresh-ratio",
     type=float,
-    default=0.9,
-    help="Token expiration refresh ratio",
+    help="Token expiration refresh ratio (env: REDIS_ENTRAID_TOKEN_EXPIRATION_REFRESH_RATIO, default 0.9)",
 )
 @click.option(
     "--entraid-retry-max-attempts",
     type=int,
-    default=3,
-    help="Maximum retry attempts for token requests",
+    help="Maximum retry attempts for token requests (env: REDIS_ENTRAID_RETRY_MAX_ATTEMPTS, default 3)",
 )
 @click.option(
     "--entraid-retry-delay-ms",
     type=int,
-    default=100,
-    help="Retry delay in milliseconds",
+    help="Retry delay in milliseconds (env: REDIS_ENTRAID_RETRY_DELAY_MS, default 100)",
 )
 def cli(
     url,
