@@ -1,3 +1,5 @@
+from typing import Union
+
 from redis.exceptions import RedisError
 
 from src.common.connection import RedisConnectionManager
@@ -5,7 +7,7 @@ from src.common.server import mcp
 
 
 @mcp.tool()
-async def dbsize() -> int:
+async def dbsize() -> Union[int, str]:
     """Get the number of keys stored in the Redis database"""
     try:
         r = RedisConnectionManager.get_connection()
