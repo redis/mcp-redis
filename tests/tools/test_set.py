@@ -38,6 +38,20 @@ class TestSetOperations:
         assert "Expires in 60 seconds" in result
 
     @pytest.mark.asyncio
+    async def test_sadd_zero_expiration_does_not_delete_key(
+        self, mock_redis_connection_manager
+    ):
+        """expire_seconds=0 must not call EXPIRE, which would delete the set."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.sadd.return_value = 1
+
+        result = await sadd("test_set", "member1", 0)
+
+        mock_redis.sadd.assert_called_once_with("test_set", "member1")
+        mock_redis.expire.assert_not_called()
+        assert "Expires" not in result
+
+    @pytest.mark.asyncio
     async def test_sadd_member_already_exists(self, mock_redis_connection_manager):
         """Test set add operation when member already exists."""
         mock_redis = mock_redis_connection_manager

@@ -26,7 +26,9 @@ async def hset(
         r = RedisConnectionManager.get_connection()
         r.hset(name, key, str(value))
 
-        if expire_seconds is not None:
+        # EXPIRE with 0 deletes the key, so treat 0 as "no expiration"
+        # (as lpush, rpush, zadd and xadd already do).
+        if expire_seconds:
             r.expire(name, expire_seconds)
 
         return f"Field '{key}' set successfully in hash '{name}'." + (
