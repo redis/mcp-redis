@@ -281,3 +281,39 @@ class TestCLIDefaultsDoNotOverrideEnv:
         assert cfg.REDIS_CFG["host"] == "redis.example.com"
         assert cfg.REDIS_CFG["port"] == 6380
         assert cfg.REDIS_CFG["ssl"] is True
+
+
+class TestCLIDefaultsDoNotOverrideEntraIDEnv:
+    """Unset --entraid-* options must not override REDIS_ENTRAID_* config (#207)."""
+
+    def setup_method(self):
+        self.runner = CliRunner()
+
+    @patch("src.main.set_entraid_config_from_cli")
+    @patch("src.main.RedisMCPServer")
+    def test_unset_options_are_not_forwarded(self, mock_server_class, mock_set_config):
+        result = self.runner.invoke(cli, [])
+
+        assert result.exit_code == 0
+        mock_set_config.assert_not_called()
+
+    @patch("src.main.RedisMCPServer")
+    def test_env_values_survive_cli_without_flags(self, mock_server_class, monkeypatch):
+        from src.common import config as cfg
+
+        env_values = {
+            "identity_type": "user_assigned",
+            "scopes": "custom-scope",
+            "resource": "https://custom/",
+            "token_expiration_refresh_ratio": 0.5,
+            "retry_max_attempts": 9,
+            "retry_delay_ms": 500,
+        }
+        for key, value in env_values.items():
+            monkeypatch.setitem(cfg.ENTRAID_CFG, key, value)
+
+        result = self.runner.invoke(cli, [])
+
+        assert result.exit_code == 0
+        for key, value in env_values.items():
+            assert cfg.ENTRAID_CFG[key] == value
