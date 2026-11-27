@@ -34,7 +34,9 @@ async def json_set(
         r = RedisConnectionManager.get_connection()
         r.json().set(name, path, parsed_value)
 
-        if expire_seconds is not None:
+        # EXPIRE with 0 deletes the key, so treat 0 as "no expiration"
+        # (as lpush, rpush, zadd and xadd already do).
+        if expire_seconds:
             r.expire(name, expire_seconds)
 
         return f"JSON value set at path '{path}' in '{name}'." + (

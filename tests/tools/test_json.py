@@ -46,6 +46,19 @@ class TestJSONOperations:
         assert "Expires in 60 seconds" in result
 
     @pytest.mark.asyncio
+    async def test_json_set_zero_expiration_does_not_delete_key(
+        self, mock_redis_connection_manager
+    ):
+        """expire_seconds=0 must not call EXPIRE, which would delete the document."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.json.return_value.set.return_value = "OK"
+
+        result = await json_set("test_doc", "$.name", "John Updated", 0)
+
+        mock_redis.expire.assert_not_called()
+        assert "Expires" not in result
+
+    @pytest.mark.asyncio
     async def test_json_set_nested_path(self, mock_redis_connection_manager):
         """Test JSON set operation with nested path."""
         mock_redis = mock_redis_connection_manager

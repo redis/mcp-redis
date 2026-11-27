@@ -45,6 +45,20 @@ class TestHashOperations:
         assert "Expires in 60 seconds." in result
 
     @pytest.mark.asyncio
+    async def test_hset_zero_expiration_does_not_delete_key(
+        self, mock_redis_connection_manager
+    ):
+        """expire_seconds=0 must not call EXPIRE, which would delete the hash."""
+        mock_redis = mock_redis_connection_manager
+        mock_redis.hset.return_value = 1
+
+        result = await hset("test_hash", "field1", "value1", 0)
+
+        mock_redis.hset.assert_called_once_with("test_hash", "field1", "value1")
+        mock_redis.expire.assert_not_called()
+        assert "Expires" not in result
+
+    @pytest.mark.asyncio
     async def test_hset_integer_value(self, mock_redis_connection_manager):
         """Test hash set operation with integer value."""
         mock_redis = mock_redis_connection_manager
