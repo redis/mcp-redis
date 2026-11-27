@@ -36,6 +36,14 @@ class TestParseRedisURI:
         }
         assert result == expected
 
+    def test_parse_redis_uri_with_percent_encoded_auth(self):
+        """Test that a percent-encoded username and password are decoded."""
+        uri = "redis://us%40er:p%40ss%3Aw%2Frd%25@localhost:6379/0"
+        result = parse_redis_uri(uri)
+
+        assert result["username"] == "us@er"
+        assert result["password"] == "p@ss:w/rd%"
+
     def test_parse_rediss_uri(self):
         """Test parsing Redis SSL URI."""
         uri = "rediss://user:pass@redis.example.com:6380/2"

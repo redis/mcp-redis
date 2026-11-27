@@ -109,11 +109,13 @@ def parse_redis_uri(uri: str) -> dict:
     else:
         config["db"] = 0
 
-    # Authentication
+    # Authentication. Characters such as "@", ":" or "/" in a username or
+    # password have to be percent-encoded in a URI, so decode them here, as
+    # redis-py's Redis.from_url does.
     if parsed.username:
-        config["username"] = parsed.username
+        config["username"] = urllib.parse.unquote(parsed.username)
     if parsed.password:
-        config["password"] = parsed.password
+        config["password"] = urllib.parse.unquote(parsed.password)
 
     # Parse query parameters for SSL and other options
     if parsed.query:
