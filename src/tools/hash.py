@@ -105,7 +105,7 @@ async def hgetall(name: str) -> dict:
 
 
 @mcp.tool()
-async def hexists(name: str, key: str) -> bool:
+async def hexists(name: str, key: str) -> Union[bool, str]:
     """Check if a field exists in a Redis hash.
 
     Args:

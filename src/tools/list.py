@@ -113,7 +113,7 @@ async def lrange(name: str, start: int, stop: int) -> Union[str, List[str]]:
 
 
 @mcp.tool()
-async def llen(name: str) -> int:
+async def llen(name: str) -> Union[int, str]:
     """Get the length of a Redis list."""
     try:
         r = RedisConnectionManager.get_connection()
