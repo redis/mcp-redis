@@ -1,6 +1,37 @@
+from functools import partial
+from unittest.mock import MagicMock, patch
+
 import pytest
+from redis.cluster import RedisCluster
+from redis.exceptions import DataError
 
 import src.tools.misc as misc
+
+
+@pytest.mark.asyncio
+async def test_scan_all_keys_cluster_mode():
+    """RedisCluster.scan returns a cursor per node, not a single integer."""
+    pages = {
+        0: ({"node-a": 7, "node-b": 0}, [b"user:1", b"user:2"]),
+        7: ({"node-a": 0}, [b"user:3"]),
+    }
+
+    def scan(cursor=0, **kwargs):
+        if isinstance(cursor, dict):
+            raise DataError("Invalid input of type: 'dict'.")
+        return pages[cursor]
+
+    cluster = MagicMock(spec=RedisCluster)
+    cluster.scan.side_effect = scan
+    # Run redis-py's own cluster iteration on top of the mocked SCAN
+    cluster.scan_iter = partial(RedisCluster.scan_iter, cluster)
+
+    with patch.object(
+        misc.RedisConnectionManager, "get_connection", return_value=cluster
+    ):
+        result = await misc.scan_all_keys("user:*")
+
+    assert result == ["user:1", "user:2", "user:3"]
 
 
 @pytest.mark.asyncio

@@ -182,21 +182,13 @@ async def scan_all_keys(
     """
     try:
         r = RedisConnectionManager.get_connection()
-        all_keys = []
-        cursor = 0
 
-        while True:
-            cursor, keys = r.scan(cursor=cursor, match=pattern, count=batch_size)
-
-            # Convert bytes to strings if needed and add to results
-            decoded_keys = [
-                key.decode("utf-8") if isinstance(key, bytes) else key for key in keys
-            ]
-            all_keys.extend(decoded_keys)
-
-            # Break when scan is complete (cursor returns to 0)
-            if cursor == 0:
-                break
+        # scan_iter handles the cursor, including the per-node cursors in cluster mode
+        # Convert bytes to strings if needed
+        all_keys = [
+            key.decode("utf-8") if isinstance(key, bytes) else key
+            for key in r.scan_iter(match=pattern, count=batch_size)
+        ]
 
         return all_keys
     except RedisError as e:
